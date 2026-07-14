@@ -196,12 +196,35 @@
 
 <div class="wrap">
   <h1>社会科 ふり返り心パレット</h1>
-  <p class="subtitle no-print">分かったこと・心の動き・つながり・次の疑問をきろくしよう</p>
+  <p class="subtitle no-print">分かったこと・心の動き・つながりをきろくしよう</p>
 
   <div class="topnav no-print">
-    <button class="navbtn active" id="nav-input" onclick="showScreen('input')">✏️ 入力する</button>
+    <button class="navbtn active" id="nav-home" onclick="showScreen('home')">🏠 Home</button>
+    <button class="navbtn" id="nav-input" onclick="showScreen('input')">✏️ 入力する</button>
     <button class="navbtn" id="nav-history" onclick="showScreen('history')">📚 わたしのきろく</button>
   </div>
+
+  <!-- ================= Home画面 ================= -->
+  <section id="screen-home">
+    <div class="card" style="text-align:center">
+      <p style="font-size:21px;font-weight:800;margin:6px 0 16px">きょうの学習を、ふり返ろう</p>
+      <div class="actions" style="flex-direction:column">
+        <button class="bigbtn b-primary" onclick="showScreen('input')">✏️ ふり返りを書く</button>
+        <button class="bigbtn b-ghost" onclick="showScreen('history')">📚 わたしのきろくを見る</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="qtitle" style="font-size:17px;margin-bottom:8px">🗑 自分のきろくをけす</div>
+      <p class="hint">自分の児童番号をえらんでから、下のボタンをおしてください。</p>
+      <div class="btnrow" id="homeDelBtns"></div>
+      <div class="actions" style="margin-top:14px">
+        <button class="bigbtn b-warn b-small" onclick="deleteMyRecords()">えらんだ番号のきろくを ぜんぶけす</button>
+      </div>
+    </div>
+    <div class="teacher-entry no-print">
+      <button onclick="openTeacherPin()">教師用</button>
+    </div>
+  </section>
 
   <!-- ================= 入力画面 ================= -->
   <section id="screen-input">
@@ -252,26 +275,11 @@
       <div class="qhead"><div class="qnum">4</div><div class="qtitle">今日分かったことは、何とつながりましたか？</div></div>
       <p class="hint">あてはまるものをえらぼう（いくつでも）。</p>
       <div class="btnrow" id="connBtns"></div>
-      <div style="height:14px"></div>
-      <label class="fld" for="connDesc">どのようにつながりましたか？</label>
-      <textarea id="connDesc" placeholder="つながりを書こう" oninput="autoGrow(this);onField()"></textarea>
-      <div class="example">れい：スーパーで魚を見たときに産地が書かれていたことと、漁港から魚が運ばれる学習がつながった。</div>
-    </div>
-
-    <!-- 6 次の疑問 -->
-    <div class="card">
-      <div class="qhead"><div class="qnum">5</div><div class="qtitle">次に、どんなことを調べたり考えたりしたいですか？</div></div>
-      <textarea id="nextText" placeholder="次に調べたいこと・考えたいことを書こう" oninput="autoGrow(this);onField()"></textarea>
-      <div class="example">れい：魚がとれない時期には、漁師さんはどのような仕事をしているのか調べたい。</div>
     </div>
 
     <div class="actions no-print">
       <button class="bigbtn b-ghost" onclick="clearDraft(true)">入力をリセット</button>
       <button class="bigbtn b-primary" onclick="goConfirm()">かくにん画面へ →</button>
-    </div>
-
-    <div class="teacher-entry no-print">
-      <button onclick="openTeacherPin()">教師用</button>
     </div>
   </section>
 
@@ -297,6 +305,9 @@
       </div>
       <div id="histViz"></div>
       <div id="histList"></div>
+      <div class="actions no-print" style="margin-top:14px">
+        <button class="bigbtn b-ghost" onclick="showScreen('home')">🏠 Homeへもどる</button>
+      </div>
     </div>
   </section>
 
@@ -435,9 +446,7 @@ function blankState(){
     selected:[],          // 選択中の区画 'key:level'（同じ感情でも複数OK・順番つき）
     scale:[],             // モヤモヤ⇔スッキリで選んだ数値（複数OK）
     reason:'',            // 気もちの言語化（1つ）
-    connections:[],
-    connectionDesc:'',
-    nextText:''
+    connections:[]
   };
 }
 /* つよさラベル（例：とてもうれしい） */
@@ -533,17 +542,64 @@ function shadeMix(hex,t){
 /* ============================================================
    画面切り替え
    ============================================================ */
-var histReturn='input'; // 詳細画面から戻る先
+var histReturn='history'; // 詳細画面から戻る先
 function showScreen(name){
-  var screens=['input','confirm','history','detail','teacher'];
+  var screens=['home','input','confirm','history','detail','teacher'];
   for(var i=0;i<screens.length;i++){
     var s=el('screen-'+screens[i]);
     if(s) s.classList.toggle('hidden', screens[i]!==name);
   }
+  el('nav-home').classList.toggle('active', name==='home');
   el('nav-input').classList.toggle('active', name==='input');
   el('nav-history').classList.toggle('active', name==='history');
   window.scrollTo(0,0);
   if(name==='history') renderHistory();
+}
+
+/* ---- Home画面：自分のきろく削除 ---- */
+var homeDelStudent=null;
+function buildHomeDelButtons(){
+  var box=el('homeDelBtns'); box.innerHTML='';
+  for(var n=1;n<=6;n++){
+    (function(n){
+      var b=document.createElement('button');
+      b.type='button'; b.className='pick stu'; b.dataset.no=n;
+      b.onclick=function(){ homeDelStudent=(homeDelStudent===n?null:n); renderHomeDelButtons(); };
+      box.appendChild(b);
+    })(n);
+  }
+  renderHomeDelButtons();
+}
+function renderHomeDelButtons(){
+  var btns=el('homeDelBtns').children;
+  for(var i=0;i<btns.length;i++){
+    var on=(homeDelStudent===Number(btns[i].dataset.no));
+    btns[i].classList.toggle('on', on);
+    btns[i].innerHTML=(on?'<span class="chk">✔</span>':'')+btns[i].dataset.no+'番';
+  }
+}
+function deleteMyRecords(){
+  if(!homeDelStudent){ toast('まず自分の児童番号をえらんでね'); return; }
+  var n=homeDelStudent;
+  var cnt=loadRecords().filter(function(r){ return Number(r.studentNo)===n; }).length;
+  if(cnt===0){ toast(n+'番のきろくはありません'); return; }
+  openModal(
+    '<h3>🗑 きろくをけす</h3>'+
+    '<p><b>'+n+'番</b> のきろく <b>'+cnt+'件</b> をぜんぶけします。<br>けしたら、もとにもどせません。よろしいですか？</p>'+
+    '<div class="actions">'+
+      '<button class="bigbtn b-ghost b-small" onclick="closeModal()">やめる</button>'+
+      '<button class="bigbtn b-warn b-small" onclick="doDeleteMyRecords()">けす</button>'+
+    '</div>'
+  );
+}
+function doDeleteMyRecords(){
+  var n=homeDelStudent;
+  var arr=loadRecords().filter(function(r){ return Number(r.studentNo)!==n; });
+  saveRecords(arr);
+  homeDelStudent=null;
+  renderHomeDelButtons();
+  closeModal();
+  toast(n+'番のきろくをけしました');
 }
 
 /* ============================================================
@@ -556,9 +612,10 @@ function init(){
   buildScale();
   buildConnButtons();
   buildHistStudentButtons();
+  buildHomeDelButtons();
   restoreDraft();
   renderAll();
-  showScreen('input');
+  showScreen('home');
 }
 
 function buildStudentButtons(){
@@ -755,15 +812,11 @@ function renderAll(){
   el('unitInput').value=state.unit;
   el('understanding').value=state.understanding;
   el('emotionReason').value=state.reason;
-  el('connDesc').value=state.connectionDesc;
-  el('nextText').value=state.nextText;
   renderStudent();
   renderEmotions();
   renderConn();
   autoGrow(el('understanding'));
   autoGrow(el('emotionReason'));
-  autoGrow(el('connDesc'));
-  autoGrow(el('nextText'));
 }
 
 /* 入力欄→状態 */
@@ -772,8 +825,6 @@ function onField(){
   state.unit=el('unitInput').value;
   state.understanding=el('understanding').value;
   state.reason=el('emotionReason').value;
-  state.connectionDesc=el('connDesc').value;
-  state.nextText=el('nextText').value;
   renderReasonCard();   // ①の内容を③にも反映
   saveDraft();
 }
@@ -839,9 +890,7 @@ function stateToRecordPreview(){
     }),
     scale: state.scale.slice().sort(function(a,b){return a-b;}),
     reason: state.reason,
-    connections:state.connections.slice(),
-    connectionDesc:state.connectionDesc,
-    next:{none:false, text:state.nextText}
+    connections:state.connections.slice()
   };
 }
 function valLabel(v){ return v==null?'（みせんたく）':(v>0?'＋'+v:'−'+Math.abs(v)); }
@@ -873,10 +922,6 @@ function buildReviewHTML(rec, showTitle){
 
   var connTxt = (rec.connections&&rec.connections.length)? rec.connections.map(function(c){return '<span class="chip">'+esc(c)+'</span>';}).join('') : '（みせんたく）';
   h+=rv('つながりの種類', connTxt);
-  h+=rv('つながりの説明', rec.connectionDesc?nl2br(rec.connectionDesc):'（みにゅうりょく）');
-
-  var nextTxt = rec.next && rec.next.none ? 'ぎもんがまだない' : (rec.next&&rec.next.text? nl2br(rec.next.text) : '（みにゅうりょく）');
-  h+=rv('次の疑問', nextTxt);
   return '<div class="review">'+h+'</div>';
 }
 function rv(k,v){ return '<div class="rvline"><div class="rvk">'+esc(k)+'</div><div class="rvv">'+v+'</div></div>'; }
@@ -892,7 +937,6 @@ function collectBlanks(){
   if(state.selected.length===0 && state.scale.length===0) list.push('心の動き（心パレット・モヤモヤ⇔スッキリ）');
   if(!state.reason.trim()) list.push('その気もちになった理由（言語化）');
   if(state.connections.length===0) list.push('つながりの種類');
-  if(!state.nextText.trim()) list.push('次の疑問');
   return list;
 }
 
@@ -987,24 +1031,21 @@ function renderHistory(){
   list.innerHTML=arr.map(function(r){
     var emo=recordEmotionText(r)||'—';
     var reason=recordReasonText(r)||'—';
-    var next=(r.next&&r.next.none)?'ぎもんがまだない':((r.next&&r.next.text)||'—');
     var understanding=(r.understanding||'—');
     if(understanding.length>60) understanding=understanding.slice(0,60)+'…';
     if(reason.length>60) reason=reason.slice(0,60)+'…';
-    if(next.length>40) next=next.slice(0,40)+'…';
     return '<div class="hist-card" onclick="openDetail(\''+r.id+'\',\'history\')">'+
       '<div class="hist-meta">📅 '+esc(r.date||'')+'　／　単元：'+esc(r.unit||'（なし）')+'</div>'+
       '<div class="hist-title">'+esc(understanding)+'</div>'+
       '<div class="hist-meta">心の動き：'+esc(emo)+'</div>'+
       '<div class="hist-meta">気もちの理由：'+esc(reason)+'</div>'+
-      '<div class="hist-meta">次の疑問：'+esc(next)+'</div>'+
     '</div>';
   }).join('');
 }
 
 /* ---- わたしのきろく：心パレット分布図・文字数ののび ---- */
 function recordCharCount(r){
-  return ((r.understanding||'')+(recordReasonText(r)||'')+(r.connectionDesc||'')+((r.next&&r.next.text)||'')).length;
+  return ((r.understanding||'')+(recordReasonText(r)||'')).length;
 }
 function renderHistViz(arr){
   var box=el('histViz');
@@ -1175,11 +1216,6 @@ function drawCardCanvas(rec){
 
   addLabel('■ つながり');
   addText((rec.connections&&rec.connections.length)?rec.connections.join('、'):'（みせんたく）');
-  addText('つながりの説明：'+(rec.connectionDesc||'（なし）'));
-  addRule();
-
-  addLabel('■ 次の疑問');
-  addText(rec.next&&rec.next.none?'ぎもんがまだない':((rec.next&&rec.next.text)||'（なし）'));
 
   var H=y+PAD;
 
@@ -1262,7 +1298,7 @@ function getFilteredRecords(){
     if(fu && (r.unit||'')!==fu) return false;
     if(fe && !(r.emotions||[]).some(function(e){ var em=emoByKey(e.key); return em&&em.label===fe; })) return false;
     if(kw){
-      var hay=[r.unit,r.understanding,recordReasonText(r),recordEmotionText(r),r.connectionDesc,(r.next&&r.next.text)]
+      var hay=[r.unit,r.understanding,recordReasonText(r),recordEmotionText(r)]
         .concat((r.connections||[]))
         .join(' ').toLowerCase();
       if(hay.indexOf(kw)<0) return false;
@@ -1283,31 +1319,28 @@ function renderTeacher(){
   var thead=el('teacherTable').querySelector('thead');
   var tbody=el('teacherTable').querySelector('tbody');
   thead.innerHTML='<tr>'+
-    ['保存日時','学習日','児童','単元名','分かったこと','えらんだ気もち','気もちの理由','つながり','つながり説明','次の疑問','操作']
+    ['保存日時','学習日','児童','単元名','分かったこと','えらんだ気もち','気もちの理由','つながり','操作']
     .map(function(h){return '<th>'+h+'</th>';}).join('')+'</tr>';
 
   tbody.innerHTML=recs.map(function(r){
     var emo=esc(recordEmotionText(r)||'—');
     var reason=recordReasonText(r);
-    var next=(r.next&&r.next.none)?'ぎもんがまだない':((r.next&&r.next.text)||'—');
     var saved=r.savedAt?r.savedAt.replace('T',' ').slice(0,16):'—';
     return '<tr>'+
       '<td>'+esc(saved)+'</td>'+
       '<td>'+esc(r.date||'')+'</td>'+
       '<td>'+esc(r.studentNo||'')+'</td>'+
       '<td>'+esc(r.unit||'')+'</td>'+
-      '<td style="max-width:220px">'+nl2br(r.understanding||'—')+'</td>'+
+      '<td style="max-width:240px">'+nl2br(r.understanding||'—')+'</td>'+
       '<td style="max-width:200px">'+emo+'</td>'+
-      '<td style="max-width:220px">'+nl2br(reason||'—')+'</td>'+
+      '<td style="max-width:240px">'+nl2br(reason||'—')+'</td>'+
       '<td>'+esc((r.connections||[]).join('、')||'—')+'</td>'+
-      '<td style="max-width:180px">'+nl2br(r.connectionDesc||'—')+'</td>'+
-      '<td style="max-width:180px">'+nl2br(next)+'</td>'+
       '<td class="no-print" style="white-space:nowrap">'+
         '<button class="pick b-small" style="min-width:auto;padding:6px 8px" onclick="openDetail(\''+r.id+'\',\'teacher\')">見る</button> '+
         '<button class="pick b-small" style="min-width:auto;padding:6px 8px;border-color:#e05a2b;color:#e05a2b" onclick="deleteOne(\''+r.id+'\')">削除</button>'+
       '</td>'+
     '</tr>';
-  }).join('') || '<tr><td colspan="11">該当する記録がありません。</td></tr>';
+  }).join('') || '<tr><td colspan="9">該当する記録がありません。</td></tr>';
 
   renderStats(recs);
 }
@@ -1412,8 +1445,7 @@ function csvCell(v){
 function exportCSV(){
   var recs=getFilteredRecords();
   var head=['保存日時','学習日','児童番号','単元名','分かったこと',
-            'えらんだ気もち','モヤモヤ・スッキリ','気もちの理由',
-            'つながりの種類','つながりの説明','次の疑問'];
+            'えらんだ気もち','モヤモヤ・スッキリ','気もちの理由','つながりの種類'];
 
   var rows=[head.map(csvCell).join(',')];
   recs.forEach(function(r){
@@ -1423,8 +1455,7 @@ function exportCSV(){
       (r.savedAt||'').replace('T',' ').slice(0,19),
       r.date||'', r.studentNo||'', r.unit||'', r.understanding||'',
       emoTxt, scaleTxt, recordReasonText(r)||'',
-      (r.connections||[]).join('、'), r.connectionDesc||'',
-      (r.next&&r.next.none)?'ぎもんがまだない':((r.next&&r.next.text)||'')
+      (r.connections||[]).join('、')
     ];
     rows.push(row.map(csvCell).join(','));
   });

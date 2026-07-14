@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>社会科 ふり返り心パレット</title>
+<style>
+  :root{
+    --bg:#f4f8ff;
+    --card:#ffffff;
+    --ink:#22303c;
+    --line:#d3dce8;
+    --accent:#2f6fed;
+    --accent-d:#1b52c0;
+    --ok:#2aa25a;
+    --warn:#e05a2b;
+    --shadow:0 2px 8px rgba(30,50,90,.08);
+    --radius:18px;
+    --tap:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",YuGothic,Meiryo,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    font-size:18px;
+    line-height:1.7;
+    -webkit-text-size-adjust:100%;
+  }
+  .wrap{max-width:820px;margin:0 auto;padding:14px 14px 120px;}
+  h1{font-size:26px;margin:6px 0 2px;text-align:center;}
+  .subtitle{text-align:center;color:#5a6b7b;font-size:15px;margin:0 0 14px;}
+
+  /* トップバー */
+  .topnav{
+    position:sticky;top:0;z-index:30;
+    display:flex;gap:8px;justify-content:center;flex-wrap:wrap;
+    background:rgba(244,248,255,.94);backdrop-filter:blur(4px);
+    padding:8px 6px;margin:0 -14px 12px;border-bottom:1px solid var(--line);
+  }
+  .navbtn{
+    font-size:17px;font-weight:700;padding:10px 16px;border-radius:999px;
+    border:2px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;min-height:46px;
+  }
+  .navbtn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:18px;margin:0 0 18px;
+  }
+  .qhead{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;}
+  .qnum{
+    flex:0 0 auto;width:38px;height:38px;border-radius:50%;
+    background:var(--accent);color:#fff;font-weight:800;font-size:20px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .qtitle{font-size:20px;font-weight:800;line-height:1.35;padding-top:3px;}
+  .hint{color:#6b7b8b;font-size:14px;margin:2px 0 10px;}
+  .example{background:#f0f6ff;border:1px dashed #a9c4f2;border-radius:12px;padding:8px 12px;font-size:14px;color:#3a557f;margin:8px 0 0;}
+
+  textarea,input[type=text],input[type=date]{
+    width:100%;font-family:inherit;font-size:18px;color:var(--ink);
+    border:2px solid var(--line);border-radius:12px;padding:12px 14px;background:#fff;
+    resize:none;overflow:hidden;
+  }
+  textarea:focus,input:focus{outline:none;border-color:var(--accent);}
+  textarea{min-height:96px;line-height:1.7;}
+  label.fld{display:block;font-weight:700;margin:4px 0 6px;font-size:16px;}
+
+  /* 児童番号 / 選択ボタン群 */
+  .btnrow{display:flex;flex-wrap:wrap;gap:var(--tap);}
+  .pick{
+    font-size:18px;font-weight:700;padding:12px 16px;min-height:52px;min-width:60px;
+    border:2px solid var(--line);border-radius:14px;background:#fff;color:var(--ink);cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  }
+  .pick .chk{display:none;font-weight:900;}
+  .pick.on{border-color:var(--accent-d);background:#e8f0ff;color:var(--accent-d);box-shadow:inset 0 0 0 2px var(--accent-d);}
+  .pick.on .chk{display:inline;}
+  .stu{width:64px;height:64px;font-size:24px;border-radius:16px;}
+
+  /* 心パレット（円形ホイール） */
+  .palette-wrap{max-width:600px;margin:0 auto;}
+  #paletteSvg{width:100%;height:auto;aspect-ratio:1/1;display:block;touch-action:manipulation;}
+  .pseg{cursor:pointer;transform:translate(0,0);transition:transform .18s ease,filter .18s ease;}
+  .pseg path{pointer-events:all;stroke:#ffffff;stroke-width:2;}
+  .pseg text{pointer-events:none;user-select:none;-webkit-user-select:none;fill:#2b2b2b;font-weight:700;}
+  .pseg:hover path{opacity:.88;}
+  .pseg.sel{transform:translate(var(--dx),var(--dy));filter:drop-shadow(0 4px 8px rgba(0,0,0,.35));}
+  .pseg.sel path{stroke:#222;stroke-width:3;opacity:1;}
+  .pseg .segchk{display:none;font-weight:900;}
+  .pseg.sel .segchk{display:block;}
+  .palette-legend{display:flex;justify-content:space-between;max-width:600px;margin:8px auto 0;}
+  .palette-legend span{border:2px solid #333;border-radius:12px;padding:4px 16px;font-weight:800;background:#fff;font-size:16px;}
+  #emoSummary{margin-top:10px;font-size:15px;}
+
+  /* モヤモヤ⇔スッキリ スケール */
+  .scalebar{display:flex;gap:6px;max-width:600px;margin:12px auto 0;}
+  .scl{
+    flex:1 1 0;min-height:58px;border-radius:10px;border:2px solid #24406e;cursor:pointer;
+    font-weight:800;font-size:18px;display:flex;align-items:center;justify-content:center;
+    flex-direction:column;gap:0;transition:transform .15s ease,box-shadow .15s ease;padding:4px 0;
+  }
+  .scl .chk{display:none;font-size:14px;line-height:1;}
+  .scl.on{transform:translateY(-6px);box-shadow:0 5px 12px rgba(0,0,0,.35);outline:3px solid var(--accent);outline-offset:1px;}
+  .scl.on .chk{display:block;}
+
+  /* 感情チップ（心パレットの色と連動） */
+  .echip{
+    display:inline-block;border:2px solid;border-radius:999px;
+    padding:3px 12px;margin:3px 6px 3px 0;font-size:15px;font-weight:800;color:#2b2b2b;
+  }
+
+  /* わたしのきろく：分布図 */
+  .histviz-svg{width:100%;max-width:430px;height:auto;aspect-ratio:1/1;display:block;margin:0 auto;}
+  .scalebar.mini{max-width:430px;}
+  .scalebar.mini .scl{min-height:46px;font-size:15px;padding:2px 0;}
+
+  /* 確認画面 */
+  .review{background:#fff;border:2px solid var(--line);border-radius:16px;padding:16px;}
+  .rvline{padding:10px 0;border-bottom:1px dashed var(--line);}
+  .rvline:last-child{border-bottom:none;}
+  .rvk{font-weight:800;color:#33506f;font-size:15px;margin-bottom:2px;}
+  .rvv{white-space:pre-wrap;word-break:break-word;}
+  .chip{display:inline-block;background:#eef4ff;border:1px solid #b9d0f5;border-radius:999px;padding:3px 12px;margin:3px 4px 0 0;font-size:15px;}
+
+  /* アクションボタン */
+  .actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;}
+  .bigbtn{
+    flex:1 1 auto;min-width:150px;font-size:19px;font-weight:800;padding:16px;border-radius:16px;
+    border:none;cursor:pointer;min-height:58px;
+  }
+  .b-primary{background:var(--accent);color:#fff;}
+  .b-ok{background:var(--ok);color:#fff;}
+  .b-ghost{background:#fff;color:var(--ink);border:2px solid var(--line);}
+  .b-warn{background:var(--warn);color:#fff;}
+  .b-small{font-size:15px;padding:10px 14px;min-height:44px;border-radius:12px;flex:0 0 auto;min-width:auto;}
+
+  /* 履歴 */
+  .hist-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:10px 0;cursor:pointer;box-shadow:var(--shadow);}
+  .hist-card:hover{border-color:var(--accent);}
+  .hist-meta{font-size:14px;color:#5a6b7b;}
+  .hist-title{font-weight:800;font-size:17px;margin:2px 0;}
+  .seg{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0;}
+  .seg button{font-size:15px;padding:8px 14px;border-radius:999px;border:2px solid var(--line);background:#fff;cursor:pointer;min-height:42px;}
+  .seg button.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+  /* 教師用 */
+  .teacher-entry{text-align:center;margin:26px 0 0;}
+  .teacher-entry button{background:none;border:none;color:#9aa8b6;font-size:14px;text-decoration:underline;cursor:pointer;padding:8px;}
+  table{border-collapse:collapse;width:100%;font-size:14px;}
+  th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top;}
+  th{background:#eef3fb;position:sticky;top:0;}
+  .tablewrap{overflow:auto;max-height:60vh;border:1px solid var(--line);border-radius:12px;}
+  .filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:10px 0;}
+  .filters select,.filters input{font-size:15px;padding:8px;border:2px solid var(--line);border-radius:10px;width:100%;background:#fff;}
+  .stat{margin:14px 0;}
+  .stat h4{margin:0 0 6px;font-size:16px;}
+  .bar-row{display:flex;align-items:center;gap:8px;margin:3px 0;font-size:14px;}
+  .bar-label{flex:0 0 130px;text-align:right;}
+  .bar-track{flex:1 1 auto;background:#eef2f7;border-radius:6px;overflow:hidden;height:20px;}
+  .bar-fill{height:100%;background:var(--accent);border-radius:6px;min-width:2px;}
+  .bar-num{flex:0 0 44px;font-weight:700;}
+
+  /* モーダル / トースト */
+  .overlay{position:fixed;inset:0;background:rgba(20,30,50,.5);display:none;align-items:center;justify-content:center;z-index:100;padding:16px;}
+  .overlay.show{display:flex;}
+  .modal{background:#fff;border-radius:18px;max-width:520px;width:100%;max-height:88vh;overflow:auto;padding:20px;box-shadow:0 10px 40px rgba(0,0,0,.3);}
+  .modal h3{margin:0 0 10px;font-size:20px;}
+  .modal ol{margin:8px 0 14px;padding-left:24px;}
+  .modal li{margin:4px 0;font-weight:700;}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#1f2c3a;color:#fff;padding:12px 22px;border-radius:999px;font-weight:700;z-index:200;opacity:0;transition:opacity .25s;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.3);}
+  .toast.show{opacity:1;}
+
+  .hidden{display:none !important;}
+  .err-banner{background:#fff3ee;border:1px solid #f0b39a;color:#a03a12;border-radius:12px;padding:10px 14px;margin:0 0 12px;font-size:14px;}
+
+  /* 印刷 */
+  @media print{
+    body{background:#fff;}
+    .no-print{display:none !important;}
+    .wrap{padding:0;max-width:none;}
+    .print-card{box-shadow:none;border:1px solid #999;}
+  }
+
+  @media (max-width:520px){
+    body{font-size:17px;}
+    .stu{width:56px;height:56px;font-size:22px;}
+    .bar-label{flex-basis:88px;}
+  }
+</style>
+</head>
+<body>
+<div id="errBanner" class="err-banner hidden no-print"></div>
+
+<div class="wrap">
+  <h1>社会科 ふり返り心パレット</h1>
+  <p class="subtitle no-print">分かったこと・心の動き・つながり・次の疑問をきろくしよう</p>
+
+  <div class="topnav no-print">
+    <button class="navbtn active" id="nav-input" onclick="showScreen('input')">✏️ 入力する</button>
+    <button class="navbtn" id="nav-history" onclick="showScreen('history')">📚 わたしのきろく</button>
+  </div>
+
+  <!-- ================= 入力画面 ================= -->
+  <section id="screen-input">
+
+    <!-- 学習日・児童番号・単元 -->
+    <div class="card">
+      <div class="qhead"><div class="qnum">0</div><div class="qtitle">きょうの学習について</div></div>
+      <label class="fld" for="dateInput">学習日（じどうてきに入るよ。かえられます）</label>
+      <input type="date" id="dateInput" onchange="onField()">
+      <div style="height:12px"></div>
+      <label class="fld" for="unitInput">単元名（たんげんめい）</label>
+      <input type="text" id="unitInput" placeholder="れい：水産業のさかんな地いき" oninput="onField()">
+      <div style="height:14px"></div>
+      <label class="fld">児童番号（じどうばんごう）をえらぼう</label>
+      <div class="btnrow" id="studentBtns"></div>
+    </div>
+
+    <!-- 1 分かったこと -->
+    <div class="card">
+      <div class="qhead"><div class="qnum">1</div><div class="qtitle">今日の学習で、どんなことが分かりましたか？</div></div>
+      <textarea id="understanding" placeholder="分かったことを書こう" oninput="autoGrow(this);onField()"></textarea>
+      <div class="example">れい：漁師さんは魚をとるだけでなく、鮮度を保つ工夫や運ぶ人との協力によって、新鮮な魚を消費者に届けていることが分かった。</div>
+    </div>
+
+    <!-- 2 感情選択 -->
+    <div class="card">
+      <div class="qhead"><div class="qnum">2</div><div class="qtitle">分かったことに対して、どんな心の動きがありましたか？</div></div>
+      <p class="hint">心パレットの、あてはまるところをタップしよう（同じ色のなかでも、いくつでもえらべます）。下のモヤモヤ⇔スッキリのメモリも、気もちとしてえらべます。</p>
+      <div class="palette-wrap">
+        <svg id="paletteSvg" viewBox="0 0 640 640" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="心パレット"></svg>
+        <div class="palette-legend"><span>モヤモヤ</span><span>スッキリ！</span></div>
+        <div class="scalebar" id="scaleBar"></div>
+      </div>
+      <div id="emoSummary" class="hint"></div>
+    </div>
+
+    <!-- 3 気もちの言語化（①と②をつなげる） -->
+    <div class="card">
+      <div class="qhead"><div class="qnum">3</div><div class="qtitle">①と②をつなげて、言葉にしよう</div></div>
+      <div id="reasonChips" class="hint"></div>
+      <label class="fld" for="emotionReason">①のことが分かって、②の気もちになった理由は？</label>
+      <textarea id="emotionReason" placeholder="どうしてかというと、…" oninput="autoGrow(this);onField()"></textarea>
+      <div class="example">れい：ダラダラ・かなしい。どうしてかというと、魚がとれなくなっている理由が、自分たちの生活とつながっていると分かったから。</div>
+    </div>
+
+    <!-- 5 つながり -->
+    <div class="card">
+      <div class="qhead"><div class="qnum">4</div><div class="qtitle">今日分かったことは、何とつながりましたか？</div></div>
+      <p class="hint">あてはまるものをえらぼう（いくつでも）。</p>
+      <div class="btnrow" id="connBtns"></div>
+      <div style="height:14px"></div>
+      <label class="fld" for="connDesc">どのようにつながりましたか？</label>
+      <textarea id="connDesc" placeholder="つながりを書こう" oninput="autoGrow(this);onField()"></textarea>
+      <div class="example">れい：スーパーで魚を見たときに産地が書かれていたことと、漁港から魚が運ばれる学習がつながった。</div>
+    </div>
+
+    <!-- 6 次の疑問 -->
+    <div class="card">
+      <div class="qhead"><div class="qnum">5</div><div class="qtitle">次に、どんなことを調べたり考えたりしたいですか？</div></div>
+      <textarea id="nextText" placeholder="次に調べたいこと・考えたいことを書こう" oninput="autoGrow(this);onField()"></textarea>
+      <div class="example">れい：魚がとれない時期には、漁師さんはどのような仕事をしているのか調べたい。</div>
+    </div>
+
+    <div class="actions no-print">
+      <button class="bigbtn b-ghost" onclick="clearDraft(true)">入力をリセット</button>
+      <button class="bigbtn b-primary" onclick="goConfirm()">かくにん画面へ →</button>
+    </div>
+
+    <div class="teacher-entry no-print">
+      <button onclick="openTeacherPin()">教師用</button>
+    </div>
+  </section>
+
+  <!-- ================= 確認画面 ================= -->
+  <section id="screen-confirm" class="hidden">
+    <div class="card print-card" id="reviewArea"></div>
+    <div class="actions no-print">
+      <button class="bigbtn b-ghost" onclick="showScreen('input')">← 入力画面に戻る</button>
+      <button class="bigbtn b-ok" id="saveBtn" onclick="trySave()">保存する</button>
+    </div>
+  </section>
+
+  <!-- ================= 履歴画面 ================= -->
+  <section id="screen-history" class="hidden">
+    <div class="card">
+      <div class="qtitle" style="margin-bottom:10px">📚 わたしのきろく</div>
+      <label class="fld">児童番号をえらぶと、これまでのきろくが見られます</label>
+      <div class="btnrow" id="histStudentBtns"></div>
+      <div class="seg" id="histSeg">
+        <button class="on" data-mode="all" onclick="setHistMode('all')">すべて</button>
+        <button data-mode="5" onclick="setHistMode('5')">最近5件</button>
+        <button data-mode="1" onclick="setHistMode('1')">最新1件</button>
+      </div>
+      <div id="histViz"></div>
+      <div id="histList"></div>
+    </div>
+  </section>
+
+  <!-- ================= 記録の詳細（振り返りカード） ================= -->
+  <section id="screen-detail" class="hidden">
+    <div class="actions no-print" style="margin-bottom:12px">
+      <button class="bigbtn b-ghost b-small" onclick="backFromDetail()">← もどる</button>
+      <button class="bigbtn b-primary b-small" onclick="printCard()">🖨 印刷 / PDF</button>
+      <button class="bigbtn b-primary b-small" onclick="exportPNG()">🖼 PNG保存</button>
+      <button class="bigbtn b-primary b-small" onclick="exportRecordJSON()">💾 JSON保存</button>
+    </div>
+    <div class="card print-card" id="detailArea"></div>
+  </section>
+
+  <!-- ================= 教師用画面 ================= -->
+  <section id="screen-teacher" class="hidden">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <div class="qtitle">🍎 教師用画面</div>
+        <button class="bigbtn b-ghost b-small no-print" onclick="showScreen('input')">← 入力画面へ</button>
+      </div>
+
+      <div class="filters no-print">
+        <select id="fStudent" onchange="renderTeacher()"><option value="">児童番号：すべて</option></select>
+        <select id="fDate" onchange="renderTeacher()"><option value="">学習日：すべて</option></select>
+        <select id="fUnit" onchange="renderTeacher()"><option value="">単元名：すべて</option></select>
+        <select id="fEmotion" onchange="renderTeacher()"><option value="">感情：すべて</option></select>
+        <input type="text" id="fKeyword" placeholder="キーワード検索" oninput="renderTeacher()">
+        <select id="fSort" onchange="renderTeacher()">
+          <option value="desc">保存日時：新しい順</option>
+          <option value="asc">保存日時：古い順</option>
+        </select>
+      </div>
+
+      <div class="actions no-print">
+        <button class="bigbtn b-primary b-small" onclick="exportCSV()">📄 CSV出力</button>
+        <button class="bigbtn b-primary b-small" onclick="exportAllJSON()">💾 全記録JSONバックアップ</button>
+        <button class="bigbtn b-ghost b-small" onclick="document.getElementById('importFile').click()">📥 JSON読み込み</button>
+        <button class="bigbtn b-warn b-small" onclick="deleteAllStep1()">🗑 全記録削除</button>
+        <input type="file" id="importFile" accept=".json,application/json" class="hidden" onchange="importJSON(event)">
+      </div>
+
+      <p class="hint" id="teacherCount"></p>
+      <div class="tablewrap">
+        <table id="teacherTable"><thead></thead><tbody></tbody></table>
+      </div>
+
+      <div id="teacherStats"></div>
+    </div>
+  </section>
+
+</div>
+
+<!-- モーダル -->
+<div class="overlay" id="overlay">
+  <div class="modal" id="modalBox"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- PNG生成用の隠しキャンバス -->
+<canvas id="pngCanvas" class="hidden"></canvas>
+
+<script>
+"use strict";
+
+/* ============================================================
+   グローバルなエラー処理（画面が固まらないように）
+   ============================================================ */
+window.addEventListener('error', function(e){
+  showErrorBanner('エラーが起きましたが、操作は続けられます。（'+ (e.message||'') +'）');
+});
+window.addEventListener('unhandledrejection', function(e){
+  showErrorBanner('エラーが起きましたが、操作は続けられます。');
+});
+function showErrorBanner(msg){
+  try{
+    var b=document.getElementById('errBanner');
+    b.textContent='⚠ '+msg;
+    b.classList.remove('hidden');
+    setTimeout(function(){ b.classList.add('hidden'); }, 6000);
+  }catch(_){}
+}
+
+/* ============================================================
+   定数
+   ============================================================ */
+var STORE_KEY='shp_records';
+var DRAFT_KEY='shp_draft';
+var TEACHER_PIN='2468';
+
+/* 心パレット：8つの感情（時計回り・真上から） × 3段階のつよさ（内→外） */
+var EMOTIONS=[
+  {key:'bikkuri',  label:'びっくり',          emoji:'😲', color:'#f2739c',
+   levels:[['すこし','びっくり'],['びっくり！'],['とても','気になる！']],
+   reasonQ:'自分が前に思っていたことや予想と、何が違いましたか？'},
+  {key:'ureshii',  label:'うれしい',          emoji:'😆', color:'#e8433f',
+   levels:[['すこし','うれしい'],['うれしい'],['とても','うれしい']],
+   reasonQ:'どんなことが分かって、うれしい気持ちになりましたか？'},
+  {key:'manzoku',  label:'なるほど・まんぞく', emoji:'😊', color:'#f5a623',
+   levels:[['なるほど'],['まんぞく'],['大まんぞく']],
+   reasonQ:'別々だった何と何がつながって分かりましたか？'},
+  {key:'iine',     label:'いいね',            emoji:'😉', color:'#3fd63c',
+   levels:[['すこし','いいね'],['いいね'],['とても','いいね']],
+   reasonQ:'どんなところを「いいね」と思いましたか？それはどうしてですか？'},
+  {key:'dara',     label:'ダラダラ・ひま',     emoji:'🥱', color:'#22d6d3',
+   levels:[['ダラダラ'],['ひま'],['しんどい']],
+   reasonQ:'どうして心があまり動かなかったと思いますか？'},
+  {key:'kanashii', label:'かなしい',          emoji:'😢', color:'#3a6df0',
+   levels:[['すこし','さみしい'],['かなしい'],['とても','かなしい']],
+   reasonQ:'どんなことを知って、かなしい気持ちになりましたか？'},
+  {key:'muka',     label:'ムカつく・イライラ', emoji:'😠', color:'#a93df0',
+   levels:[['イライラ'],['ムカつく！'],['ぜったい','ゆるさない']],
+   reasonQ:'どこが納得できない、またはおかしいと感じましたか？'},
+  {key:'shinpai',  label:'しんぱい',          emoji:'😟', color:'#f04fb0',
+   levels:[['すこし','しんぱい'],['しんぱい'],['とても','しんぱい']],
+   reasonQ:'何が心配になりましたか？どうしてそう思いましたか？'}
+];
+function emoByKey(k){ for(var i=0;i<EMOTIONS.length;i++){ if(EMOTIONS[i].key===k) return EMOTIONS[i]; } return null; }
+
+var CONN_OPTIONS=['自分の生活','家族との経験','これまでの学習','ニュース・テレビ・本','ほかの経験や知識','まだつながらない'];
+var CONN_NONE='まだつながらない';
+
+/* モヤモヤ⇔スッキリ スケール（0はなし・画像と同じ） */
+var SCALE_VALUES=[-4,-3,-2,-1,1,2,3,4];
+
+/* ============================================================
+   状態
+   ============================================================ */
+var state=null;
+function blankState(){
+  return {
+    date: todayStr(),
+    studentNo: null,
+    unit:'',
+    understanding:'',
+    selected:[],          // 選択中の区画 'key:level'（同じ感情でも複数OK・順番つき）
+    scale:[],             // モヤモヤ⇔スッキリで選んだ数値（複数OK）
+    reason:'',            // 気もちの言語化（1つ）
+    connections:[],
+    connectionDesc:'',
+    nextText:''
+  };
+}
+/* つよさラベル（例：とてもうれしい） */
+function paletteLevelLabel(key,level){
+  var em=emoByKey(key);
+  if(!em) return String(key);
+  if(!level || !em.levels || !em.levels[level-1]) return em.label;
+  return em.levels[level-1].join('');
+}
+/* 感情チップHTML（心パレットの色と連動）
+   emotions: [{key,label}...] / scale: [数値...] */
+function emotionChipsHTML(emotions, scale){
+  var parts=(emotions||[]).map(function(e){
+    var em=emoByKey(e.key);
+    var col=em?em.color:'#98a2ad';
+    var lbl=e.label||e.levelLabel||e.key;
+    return '<span class="echip" style="background:'+shadeMix(col,0.18)+';border-color:'+col+'">'+esc(lbl)+'</span>';
+  });
+  (scale||[]).slice().sort(function(a,b){return a-b;}).forEach(function(v){
+    var light=Math.round(15+(v+4)/8*85);
+    var txtCol=(v<=-1)?'#fff':'#22303c';
+    parts.push('<span class="echip" style="background:hsl(215,15%,'+light+'%);border-color:#24406e;color:'+txtCol+'">'+valLabel(v)+'</span>');
+  });
+  return parts.join('');
+}
+/* 選択中の区画→チップHTML */
+function selectedEmotionChips(st){
+  var emotions=(st.selected||[]).map(function(id){
+    var kp=String(id).split(':');
+    return {key:kp[0], label:paletteLevelLabel(kp[0], +kp[1])};
+  });
+  return emotionChipsHTML(emotions, st.scale);
+}
+/* 選択中の気もちを「ダラダラ・かなしい・＋2」のように1本の文字列に */
+function selectedEmotionText(st){
+  var parts=(st.selected||[]).map(function(id){
+    var kp=String(id).split(':');
+    return paletteLevelLabel(kp[0], +kp[1]);
+  });
+  (st.scale||[]).slice().sort(function(a,b){return a-b;}).forEach(function(v){
+    parts.push(v>0?'＋'+v:'−'+Math.abs(v));
+  });
+  return parts.join('・');
+}
+
+/* ============================================================
+   ユーティリティ
+   ============================================================ */
+function todayStr(){
+  var d=new Date();
+  var m=('0'+(d.getMonth()+1)).slice(-2);
+  var day=('0'+d.getDate()).slice(-2);
+  return d.getFullYear()+'-'+m+'-'+day;
+}
+function el(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function nl2br(s){ return esc(s).replace(/\n/g,'<br>'); }
+function autoGrow(t){ t.style.height='auto'; t.style.height=(t.scrollHeight+2)+'px'; }
+function toast(msg){
+  var t=el('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 1800);
+}
+function loadRecords(){
+  try{
+    var raw=localStorage.getItem(STORE_KEY);
+    if(!raw) return [];
+    var arr=JSON.parse(raw);
+    return Array.isArray(arr)?arr:[];
+  }catch(e){ showErrorBanner('保存データの読み込みに失敗しました。'); return []; }
+}
+function saveRecords(arr){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(arr)); }
+  catch(e){ showErrorBanner('保存に失敗しました（容量オーバーの可能性）。'); }
+}
+
+/* 色：数値の大きさで濃さを変える（白→基本色をブレンド） */
+function hexToRgb(hex){
+  hex=hex.replace('#','');
+  return {r:parseInt(hex.substr(0,2),16), g:parseInt(hex.substr(2,2),16), b:parseInt(hex.substr(4,2),16)};
+}
+function shade(hex,value){
+  var m = (value==null)?0.35 : Math.abs(value)/4;   // 0..1
+  var t = 0.14 + 0.86*m;                             // 濃さ
+  return shadeMix(hex,t);
+}
+/* 白→基本色を t (0..1) でブレンド */
+function shadeMix(hex,t){
+  var c=hexToRgb(hex);
+  var r=Math.round(255+(c.r-255)*t), g=Math.round(255+(c.g-255)*t), b=Math.round(255+(c.b-255)*t);
+  return 'rgb('+r+','+g+','+b+')';
+}
+
+/* ============================================================
+   画面切り替え
+   ============================================================ */
+var histReturn='input'; // 詳細画面から戻る先
+function showScreen(name){
+  var screens=['input','confirm','history','detail','teacher'];
+  for(var i=0;i<screens.length;i++){
+    var s=el('screen-'+screens[i]);
+    if(s) s.classList.toggle('hidden', screens[i]!==name);
+  }
+  el('nav-input').classList.toggle('active', name==='input');
+  el('nav-history').classList.toggle('active', name==='history');
+  window.scrollTo(0,0);
+  if(name==='history') renderHistory();
+}
+
+/* ============================================================
+   初期化
+   ============================================================ */
+function init(){
+  state=blankState();
+  buildStudentButtons();
+  buildPalette();
+  buildScale();
+  buildConnButtons();
+  buildHistStudentButtons();
+  restoreDraft();
+  renderAll();
+  showScreen('input');
+}
+
+function buildStudentButtons(){
+  var box=el('studentBtns'); box.innerHTML='';
+  for(var n=1;n<=6;n++){
+    (function(n){
+      var b=document.createElement('button');
+      b.type='button'; b.className='pick stu'; b.textContent=n; b.dataset.no=n;
+      b.onclick=function(){ state.studentNo=(state.studentNo===n?null:n); onField(); renderStudent(); };
+      box.appendChild(b);
+    })(n);
+  }
+}
+function renderStudent(){
+  var btns=el('studentBtns').children;
+  for(var i=0;i<btns.length;i++){
+    var on=(state.studentNo===Number(btns[i].dataset.no));
+    btns[i].classList.toggle('on', on);
+    btns[i].innerHTML=(on?'<span class="chk">✔</span>':'')+btns[i].dataset.no+'番';
+  }
+}
+
+/* ---- 心パレット（SVGホイール）の構築 ---- */
+var SVG_NS='http://www.w3.org/2000/svg';
+var paletteSegs=[]; // {key,level,g}
+function polarPt(cx,cy,r,aDeg){
+  var a=aDeg*Math.PI/180;
+  return [ +(cx+r*Math.cos(a)).toFixed(2), +(cy+r*Math.sin(a)).toFixed(2) ];
+}
+function annularPath(cx,cy,r0,r1,a0,a1){
+  var p0=polarPt(cx,cy,r1,a0), p1=polarPt(cx,cy,r1,a1);
+  if(r0<1){
+    // 中心までの扇形
+    return 'M '+cx+' '+cy+' L '+p0[0]+' '+p0[1]+' A '+r1+' '+r1+' 0 0 1 '+p1[0]+' '+p1[1]+' Z';
+  }
+  var q1=polarPt(cx,cy,r0,a1), q0=polarPt(cx,cy,r0,a0);
+  return 'M '+p0[0]+' '+p0[1]+' A '+r1+' '+r1+' 0 0 1 '+p1[0]+' '+p1[1]+
+         ' L '+q1[0]+' '+q1[1]+' A '+r0+' '+r0+' 0 0 0 '+q0[0]+' '+q0[1]+' Z';
+}
+function buildPalette(){
+  var svg=el('paletteSvg');
+  svg.innerHTML='';
+  paletteSegs=[];
+  var cx=320, cy=320, R=300;
+  var rings=[[0,0.47],[0.47,0.74],[0.74,1.0]];   // 内・中・外
+  var labelR=[0.29,0.605,0.875];
+  var tone=[0.30,0.55,1.0];                       // 色の濃さ（内→外）
+  EMOTIONS.forEach(function(em,i){
+    var a0=-90+i*45, a1=a0+45, mid=(a0+a1)/2;
+    var midRad=mid*Math.PI/180;
+    for(var lv=1;lv<=3;lv++){
+      var r0=rings[lv-1][0]*R, r1=rings[lv-1][1]*R;
+      var g=document.createElementNS(SVG_NS,'g');
+      g.setAttribute('class','pseg');
+      // 浮かび上がる方向（区画の中心方向へ10px）
+      g.style.setProperty('--dx',(10*Math.cos(midRad)).toFixed(1)+'px');
+      g.style.setProperty('--dy',(10*Math.sin(midRad)).toFixed(1)+'px');
+
+      var p=document.createElementNS(SVG_NS,'path');
+      p.setAttribute('d', annularPath(cx,cy,r0,r1,a0,a1));
+      p.setAttribute('fill', shadeMix(em.color, tone[lv-1]));
+      g.appendChild(p);
+
+      // ラベル（複数行対応）
+      var lr=labelR[lv-1]*R;
+      var lx=+(cx+lr*Math.cos(midRad)).toFixed(1);
+      var ly=+(cy+lr*Math.sin(midRad)).toFixed(1);
+      var lines=em.levels[lv-1];
+      var fs=(lv===1)?15:16, lh=(lv===1)?17:19;
+      var y0=ly-(lines.length-1)*lh/2+5;
+      var t=document.createElementNS(SVG_NS,'text');
+      t.setAttribute('text-anchor','middle');
+      t.setAttribute('font-size',fs);
+      lines.forEach(function(ln,li){
+        var ts=document.createElementNS(SVG_NS,'tspan');
+        ts.setAttribute('x',lx); ts.setAttribute('y',y0+li*lh);
+        ts.textContent=ln;
+        t.appendChild(ts);
+      });
+      g.appendChild(t);
+
+      // 選択チェックマーク
+      var ck=document.createElementNS(SVG_NS,'text');
+      ck.setAttribute('class','segchk');
+      ck.setAttribute('x',lx); ck.setAttribute('y',y0-lh);
+      ck.setAttribute('text-anchor','middle');
+      ck.setAttribute('font-size',20);
+      ck.textContent='✔';
+      g.appendChild(ck);
+
+      (function(key,level){
+        g.addEventListener('click',function(){ selectPalette(key,level); });
+      })(em.key,lv);
+
+      svg.appendChild(g);
+      paletteSegs.push({key:em.key, level:lv, g:g});
+    }
+  });
+}
+/* 区画タップ：区画ごとに独立してオン／オフ（同じ感情でも複数えらべる） */
+function selectPalette(key,level){
+  var id=key+':'+level;
+  var idx=state.selected.indexOf(id);
+  if(idx>=0){ state.selected.splice(idx,1); }
+  else{ state.selected.push(id); }
+  onField();
+  renderEmotions();
+}
+/* モヤモヤ⇔スッキリ スケールの構築 */
+function buildScale(){
+  var bar=el('scaleBar'); bar.innerHTML='';
+  SCALE_VALUES.forEach(function(v){
+    var b=document.createElement('button');
+    b.type='button'; b.className='scl'; b.dataset.v=v;
+    // −4=こい黒 → ＋4=白 のグラデーション
+    var light=Math.round(15+(v+4)/8*85);
+    b.style.background='hsl(215,15%,'+light+'%)';
+    b.style.color=(v<=-1)?'#fff':'#22303c';
+    b.innerHTML='<span class="chk">✔</span><span>'+(v>0?'＋'+v:'−'+Math.abs(v))+'</span>';
+    b.onclick=function(){ toggleScale(v); };
+    bar.appendChild(b);
+  });
+}
+function toggleScale(v){
+  var i=state.scale.indexOf(v);
+  if(i>=0){ state.scale.splice(i,1); }
+  else{ state.scale.push(v); }
+  onField();
+  renderEmotions();
+}
+function renderEmotions(){
+  paletteSegs.forEach(function(s){
+    s.g.classList.toggle('sel', state.selected.indexOf(s.key+':'+s.level)>=0);
+  });
+  var btns=el('scaleBar').children;
+  for(var i=0;i<btns.length;i++){
+    btns[i].classList.toggle('on', state.scale.indexOf(Number(btns[i].dataset.v))>=0);
+  }
+  renderEmoSummary();
+  renderReasonCard();
+}
+function renderEmoSummary(){
+  var box=el('emoSummary');
+  var chips=selectedEmotionChips(state);
+  box.innerHTML = chips ? ('えらんだ気もち： '+chips) : 'まだえらんでいません。パレットやメモリをタップしてえらぼう。';
+}
+/* 言語化カード：①の回答と②の気もちを並べて、つながりを見せる */
+function renderReasonCard(){
+  var box=el('reasonChips');
+  var und=(state.understanding||'').trim();
+  var undShort=und.length>80?und.slice(0,80)+'…':und;
+  var chips=selectedEmotionChips(state);
+  box.innerHTML=
+    '<div style="margin-bottom:6px">📖 <b>①分かったこと</b>：'+
+      (und?('「'+esc(undShort)+'」'):'<span style="color:#98a2ad">（まだ書いていません）</span>')+'</div>'+
+    '<div>🎨 <b>②えらんだ気もち</b>：'+
+      (chips||'<span style="color:#98a2ad">（まだえらんでいません）</span>')+'</div>';
+}
+function buildConnButtons(){
+  var box=el('connBtns'); box.innerHTML='';
+  CONN_OPTIONS.forEach(function(opt){
+    var b=document.createElement('button');
+    b.type='button'; b.className='pick'; b.dataset.opt=opt;
+    b.onclick=function(){ toggleConn(opt); };
+    box.appendChild(b);
+  });
+  renderConn();
+}
+function toggleConn(opt){
+  var i=state.connections.indexOf(opt);
+  if(i>=0){ state.connections.splice(i,1); }
+  else{
+    if(opt===CONN_NONE){ state.connections=[CONN_NONE]; }          // 排他
+    else{
+      state.connections=state.connections.filter(function(x){return x!==CONN_NONE;});
+      state.connections.push(opt);
+    }
+  }
+  onField(); renderConn();
+}
+function renderConn(){
+  var btns=el('connBtns').children;
+  for(var i=0;i<btns.length;i++){
+    var opt=btns[i].dataset.opt;
+    var on=state.connections.indexOf(opt)>=0;
+    btns[i].classList.toggle('on', on);
+    btns[i].innerHTML=(on?'<span class="chk">✔</span>':'')+opt;
+  }
+}
+
+/* 画面へ状態を反映 */
+function renderAll(){
+  el('dateInput').value=state.date;
+  el('unitInput').value=state.unit;
+  el('understanding').value=state.understanding;
+  el('emotionReason').value=state.reason;
+  el('connDesc').value=state.connectionDesc;
+  el('nextText').value=state.nextText;
+  renderStudent();
+  renderEmotions();
+  renderConn();
+  autoGrow(el('understanding'));
+  autoGrow(el('emotionReason'));
+  autoGrow(el('connDesc'));
+  autoGrow(el('nextText'));
+}
+
+/* 入力欄→状態 */
+function onField(){
+  state.date=el('dateInput').value;
+  state.unit=el('unitInput').value;
+  state.understanding=el('understanding').value;
+  state.reason=el('emotionReason').value;
+  state.connectionDesc=el('connDesc').value;
+  state.nextText=el('nextText').value;
+  renderReasonCard();   // ①の内容を③にも反映
+  saveDraft();
+}
+
+/* ============================================================
+   一時保存（ドラフト）
+   ============================================================ */
+var draftTimer=null;
+function saveDraft(){
+  if(draftTimer) clearTimeout(draftTimer);
+  draftTimer=setTimeout(function(){
+    try{ localStorage.setItem(DRAFT_KEY, JSON.stringify(state)); }catch(e){}
+  }, 250);
+}
+function restoreDraft(){
+  try{
+    var raw=localStorage.getItem(DRAFT_KEY);
+    if(!raw) return;
+    var d=JSON.parse(raw);
+    if(d && typeof d==='object'){
+      state=Object.assign(blankState(), d);
+      if(!Array.isArray(state.selected)) state.selected=[];
+      // 'key:level' 形式で、現在のパレットに存在する区画だけ残す（旧データ対策）
+      state.selected=state.selected.filter(function(id){
+        var kp=String(id).split(':');
+        return kp.length===2 && !!emoByKey(kp[0]) && [1,2,3].indexOf(+kp[1])>=0;
+      });
+      if(!Array.isArray(state.scale)) state.scale=[];
+      state.scale=state.scale.filter(function(v){ return SCALE_VALUES.indexOf(v)>=0; });
+      if(typeof state.reason!=='string') state.reason='';
+      if(!Array.isArray(state.connections)) state.connections=[];
+    }
+  }catch(e){ showErrorBanner('入力途中データの復元に失敗しました。'); }
+}
+function clearDraft(reset){
+  try{ localStorage.removeItem(DRAFT_KEY); }catch(e){}
+  if(reset){
+    if(!confirm('入力中の内容をすべて消して、最初からにしますか？')) return;
+    state=blankState();
+    renderAll();
+    toast('リセットしました');
+  }
+}
+
+/* ============================================================
+   確認画面
+   ============================================================ */
+function goConfirm(){
+  onField();
+  el('reviewArea').innerHTML=buildReviewHTML(stateToRecordPreview(), true);
+  showScreen('confirm');
+}
+function stateToRecordPreview(){
+  return {
+    date:state.date, studentNo:state.studentNo, unit:state.unit,
+    understanding:state.understanding,
+    emotions: state.selected.map(function(id){
+      var kp=String(id).split(':');
+      var key=kp[0], lv=+kp[1];
+      var em=emoByKey(key);
+      return {key:key, level:lv, family:(em?em.label:key), emoji:(em?em.emoji:''),
+              label:paletteLevelLabel(key,lv)};
+    }),
+    scale: state.scale.slice().sort(function(a,b){return a-b;}),
+    reason: state.reason,
+    connections:state.connections.slice(),
+    connectionDesc:state.connectionDesc,
+    next:{none:false, text:state.nextText}
+  };
+}
+function valLabel(v){ return v==null?'（みせんたく）':(v>0?'＋'+v:'−'+Math.abs(v)); }
+/* 記録1件ぶんの「えらんだ気もち」テキスト（旧形式にも対応） */
+function recordEmotionText(rec){
+  var parts=(rec.emotions||[]).map(function(e){ return e.label||e.levelLabel||e.key; });
+  (rec.scale||[]).forEach(function(v){ parts.push(valLabel(v)); });
+  return parts.join('・');
+}
+/* 記録1件ぶんの理由テキスト（旧形式は感情ごとの理由を結合） */
+function recordReasonText(rec){
+  if(rec.reason) return rec.reason;
+  var old=(rec.emotions||[]).map(function(e){ return e.reason; }).filter(Boolean);
+  return old.join(' ／ ');
+}
+
+function buildReviewHTML(rec, showTitle){
+  var h='';
+  if(showTitle) h+='<div class="qtitle" style="margin-bottom:10px">📝 ふり返りカード（かくにん）</div>';
+  h+=rv('学習日', esc(rec.date||'（みせんたく）'));
+  h+=rv('児童番号', rec.studentNo?esc(rec.studentNo)+'番':'（みせんたく）');
+  h+=rv('単元名', esc(rec.unit||'（みせんたく）'));
+  h+=rv('今日の学習で分かったこと', rec.understanding?nl2br(rec.understanding):'（みせんたく）');
+
+  var emoChips=emotionChipsHTML(rec.emotions, rec.scale);
+  h+=rv('選んだ心の動き', emoChips||'（みせんたく）');
+  var reasonTxt=recordReasonText(rec);
+  h+=rv('その気もちになった理由', reasonTxt?nl2br(reasonTxt):'（みにゅうりょく）');
+
+  var connTxt = (rec.connections&&rec.connections.length)? rec.connections.map(function(c){return '<span class="chip">'+esc(c)+'</span>';}).join('') : '（みせんたく）';
+  h+=rv('つながりの種類', connTxt);
+  h+=rv('つながりの説明', rec.connectionDesc?nl2br(rec.connectionDesc):'（みにゅうりょく）');
+
+  var nextTxt = rec.next && rec.next.none ? 'ぎもんがまだない' : (rec.next&&rec.next.text? nl2br(rec.next.text) : '（みにゅうりょく）');
+  h+=rv('次の疑問', nextTxt);
+  return '<div class="review">'+h+'</div>';
+}
+function rv(k,v){ return '<div class="rvline"><div class="rvk">'+esc(k)+'</div><div class="rvv">'+v+'</div></div>'; }
+
+/* ============================================================
+   未入力チェック＆保存
+   ============================================================ */
+function collectBlanks(){
+  var list=[];
+  if(!state.studentNo) list.push('児童番号');
+  if(!state.understanding.trim()) list.push('今日の学習で分かったこと');
+  if(!state.unit.trim()) list.push('単元名');
+  if(state.selected.length===0 && state.scale.length===0) list.push('心の動き（心パレット・モヤモヤ⇔スッキリ）');
+  if(!state.reason.trim()) list.push('その気もちになった理由（言語化）');
+  if(state.connections.length===0) list.push('つながりの種類');
+  if(!state.nextText.trim()) list.push('次の疑問');
+  return list;
+}
+
+var saving=false; // 二重保存ふせぎ
+function trySave(){
+  if(saving) return;
+  var blanks=collectBlanks();
+  if(blanks.length>0){
+    var items=blanks.map(function(b,i){ return '<li>'+esc(b)+'</li>'; }).join('');
+    openModal(
+      '<h3>未入力の項目があります</h3>'+
+      '<p class="hint">下の項目がまだ入っていません。このまま保存もできます。</p>'+
+      '<ol>'+items+'</ol>'+
+      '<div class="actions">'+
+        '<button class="bigbtn b-ghost b-small" onclick="closeModal()">入力にもどる</button>'+
+        '<button class="bigbtn b-ok b-small" onclick="closeModal();doSave()">このまま保存する</button>'+
+      '</div>'
+    );
+    return;
+  }
+  doSave();
+}
+function doSave(){
+  if(saving) return;
+  saving=true;
+  el('saveBtn').disabled=true;
+  try{
+    var rec=stateToRecordPreview();
+    rec.id='r'+Date.now()+'_'+Math.floor(Math.random()*1000);
+    rec.savedAt=new Date().toISOString();
+    var arr=loadRecords();
+    arr.push(rec);
+    saveRecords(arr);
+    clearDraft(false);
+    var savedStudent=rec.studentNo;
+    state=blankState();
+    renderAll();
+    toast('保存しました！');
+    // 保存したら、その子の「わたしのきろく」を自動で開く
+    if(savedStudent) histStudent=Number(savedStudent);
+    showScreen('history');
+  }catch(e){
+    showErrorBanner('保存に失敗しました。');
+  }finally{
+    saving=false;
+    el('saveBtn').disabled=false;
+  }
+}
+
+/* ============================================================
+   履歴画面
+   ============================================================ */
+var histStudent=null;
+var histMode='all';
+function buildHistStudentButtons(){
+  var box=el('histStudentBtns'); box.innerHTML='';
+  for(var n=1;n<=6;n++){
+    (function(n){
+      var b=document.createElement('button');
+      b.type='button'; b.className='pick stu'; b.textContent=n+'番'; b.dataset.no=n;
+      b.onclick=function(){ histStudent=(histStudent===n?null:n); renderHistory(); };
+      box.appendChild(b);
+    })(n);
+  }
+}
+function setHistMode(m){
+  histMode=m;
+  var segs=el('histSeg').children;
+  for(var i=0;i<segs.length;i++){ segs[i].classList.toggle('on', segs[i].dataset.mode===m); }
+  renderHistory();
+}
+function renderHistory(){
+  var btns=el('histStudentBtns').children;
+  for(var i=0;i<btns.length;i++){
+    var on=(histStudent===Number(btns[i].dataset.no));
+    btns[i].classList.toggle('on', on);
+    btns[i].innerHTML=(on?'<span class="chk">✔</span>':'')+btns[i].dataset.no+'番';
+  }
+  var list=el('histList');
+  var viz=el('histViz');
+  if(!histStudent){ viz.innerHTML=''; list.innerHTML='<p class="hint">児童番号をえらんでください。</p>'; return; }
+
+  var arr=loadRecords().filter(function(r){ return Number(r.studentNo)===histStudent; });
+  arr.sort(function(a,b){ return (b.savedAt||'').localeCompare(a.savedAt||''); }); // 新しい順
+  if(histMode==='5') arr=arr.slice(0,5);
+  else if(histMode==='1') arr=arr.slice(0,1);
+
+  if(arr.length===0){ viz.innerHTML=''; list.innerHTML='<p class="hint">まだきろくがありません。</p>'; return; }
+
+  renderHistViz(arr);
+
+  list.innerHTML=arr.map(function(r){
+    var emo=recordEmotionText(r)||'—';
+    var reason=recordReasonText(r)||'—';
+    var next=(r.next&&r.next.none)?'ぎもんがまだない':((r.next&&r.next.text)||'—');
+    var understanding=(r.understanding||'—');
+    if(understanding.length>60) understanding=understanding.slice(0,60)+'…';
+    if(reason.length>60) reason=reason.slice(0,60)+'…';
+    if(next.length>40) next=next.slice(0,40)+'…';
+    return '<div class="hist-card" onclick="openDetail(\''+r.id+'\',\'history\')">'+
+      '<div class="hist-meta">📅 '+esc(r.date||'')+'　／　単元：'+esc(r.unit||'（なし）')+'</div>'+
+      '<div class="hist-title">'+esc(understanding)+'</div>'+
+      '<div class="hist-meta">心の動き：'+esc(emo)+'</div>'+
+      '<div class="hist-meta">気もちの理由：'+esc(reason)+'</div>'+
+      '<div class="hist-meta">次の疑問：'+esc(next)+'</div>'+
+    '</div>';
+  }).join('');
+}
+
+/* ---- わたしのきろく：心パレット分布図・文字数ののび ---- */
+function recordCharCount(r){
+  return ((r.understanding||'')+(recordReasonText(r)||'')+(r.connectionDesc||'')+((r.next&&r.next.text)||'')).length;
+}
+function renderHistViz(arr){
+  var box=el('histViz');
+  // 区画・スケールごとの選択回数
+  var segCount={}, scaleCount={};
+  arr.forEach(function(r){
+    (r.emotions||[]).forEach(function(e){
+      if(e.key && e.level) segCount[e.key+':'+e.level]=(segCount[e.key+':'+e.level]||0)+1;
+    });
+    (r.scale||[]).forEach(function(v){ scaleCount[v]=(scaleCount[v]||0)+1; });
+  });
+
+  // 心パレット分布図（SVG・タップ不可）
+  var cx=320, cy=320, R=300;
+  var rings=[[0,0.47],[0.47,0.74],[0.74,1.0]];
+  var labelR=[0.29,0.605,0.875];
+  var tone=[0.30,0.55,1.0];
+  var svg='';
+  EMOTIONS.forEach(function(em,i){
+    var a0=-90+i*45, a1=a0+45, mid=(a0+a1)/2;
+    var midRad=mid*Math.PI/180;
+    for(var lv=1;lv<=3;lv++){
+      var c=segCount[em.key+':'+lv]||0;
+      var r0=rings[lv-1][0]*R, r1=rings[lv-1][1]*R;
+      var lr=labelR[lv-1]*R;
+      var lx=+(cx+lr*Math.cos(midRad)).toFixed(1);
+      var ly=+(cy+lr*Math.sin(midRad)).toFixed(1);
+      var lines=em.levels[lv-1];
+      var fs=(lv===1)?15:16, lh=(lv===1)?17:19;
+      var y0=ly-(lines.length-1)*lh/2+5;
+      svg+='<g opacity="'+(c>0?'1':'0.15')+'">';
+      svg+='<path d="'+annularPath(cx,cy,r0,r1,a0,a1)+'" fill="'+shadeMix(em.color,tone[lv-1])+'" stroke="'+(c>0?'#222':'#fff')+'" stroke-width="'+(c>0?3:2)+'"/>';
+      svg+='<text text-anchor="middle" font-size="'+fs+'" fill="#2b2b2b" font-weight="700">';
+      lines.forEach(function(ln,li){
+        svg+='<tspan x="'+lx+'" y="'+(y0+li*lh)+'">'+esc(ln)+'</tspan>';
+      });
+      svg+='</text>';
+      if(c>0){
+        svg+='<circle cx="'+lx+'" cy="'+(y0-lh-4)+'" r="13" fill="#2f6fed" stroke="#fff" stroke-width="2"/>'+
+             '<text x="'+lx+'" y="'+(y0-lh+1)+'" text-anchor="middle" font-size="14" font-weight="800" fill="#fff">'+c+'</text>';
+      }
+      svg+='</g>';
+    }
+  });
+
+  // モヤモヤ⇔スッキリの回数
+  var scaleHtml=SCALE_VALUES.map(function(v){
+    var c=scaleCount[v]||0;
+    var light=Math.round(15+(v+4)/8*85);
+    return '<div class="scl" style="cursor:default;background:hsl(215,15%,'+light+'%);color:'+((v<=-1)?'#fff':'#22303c')+';opacity:'+(c>0?1:0.25)+'">'+
+      '<span>'+valLabel(v)+'</span>'+(c>0?'<span style="font-size:13px">×'+c+'</span>':'')+
+    '</div>';
+  }).join('');
+
+  // 文字数ののび（古い順に棒グラフ）
+  var items=arr.slice().reverse();
+  var counts=items.map(recordCharCount);
+  var max=Math.max.apply(null, counts.concat([1]));
+  var barsHtml=items.map(function(r,i){
+    var w=Math.round(counts[i]/max*100);
+    var d=(r.date||'').slice(5).replace('-','/');
+    return '<div class="bar-row"><div class="bar-label">'+esc(d||'—')+'</div>'+
+      '<div class="bar-track"><div class="bar-fill" style="width:'+w+'%"></div></div>'+
+      '<div class="bar-num">'+counts[i]+'字</div></div>';
+  }).join('');
+
+  box.innerHTML=
+    '<div class="qtitle" style="font-size:17px;margin:10px 0 6px">🎨 わたしの心パレット（えらんだ回数）</div>'+
+    '<svg class="histviz-svg" viewBox="0 0 640 640" xmlns="http://www.w3.org/2000/svg">'+svg+'</svg>'+
+    '<div class="scalebar mini">'+scaleHtml+'</div>'+
+    '<div class="stat" style="margin-top:16px"><h4>✍ 書いた文字数ののび</h4>'+barsHtml+'</div>';
+}
+
+/* ============================================================
+   記録の詳細（振り返りカード）
+   ============================================================ */
+var currentDetailId=null;
+function openDetail(id, from){
+  var rec=loadRecords().filter(function(r){return r.id===id;})[0];
+  if(!rec){ toast('記録が見つかりません'); return; }
+  currentDetailId=id;
+  histReturn=from||'history';
+  el('detailArea').innerHTML=
+    '<div class="qtitle" style="margin-bottom:10px">📝 ふり返りカード</div>'+
+    buildReviewHTML(rec,false);
+  showScreen('detail');
+}
+function backFromDetail(){ showScreen(histReturn); }
+
+function printCard(){ window.print(); }
+
+function exportRecordJSON(){
+  var rec=loadRecords().filter(function(r){return r.id===currentDetailId;})[0];
+  if(!rec) return;
+  downloadBlob(JSON.stringify(rec,null,2), 'furikaeri_'+(rec.studentNo||'x')+'_'+(rec.date||'')+'.json','application/json');
+  toast('JSONを保存しました');
+}
+
+/* ---- PNG（canvasに手描き。外部ライブラリ不使用） ---- */
+function exportPNG(){
+  try{
+    var rec=loadRecords().filter(function(r){return r.id===currentDetailId;})[0];
+    if(!rec) return;
+    var canvas=drawCardCanvas(rec);
+    var url=canvas.toDataURL('image/png');
+    var a=document.createElement('a');
+    a.href=url; a.download='furikaeri_'+(rec.studentNo||'x')+'_'+(rec.date||'')+'.png';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    toast('PNGを保存しました');
+  }catch(e){ showErrorBanner('PNGの作成に失敗しました。'); }
+}
+
+function drawCardCanvas(rec){
+  var W=760, PAD=40, cw=W-PAD*2;
+  var scale=2; // 高解像度
+  var canvas=el('pngCanvas');
+  var ctx=canvas.getContext('2d');
+
+  var fBody='16px -apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif';
+  var fLabel='bold 16px -apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif';
+  var fTitle='bold 26px -apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif';
+  var fSmall='14px -apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif';
+
+  // --- レイアウト命令を作りながら高さを計算 ---
+  var ops=[]; var y=PAD;
+  function wrap(text,font,maxW){
+    ctx.font=font;
+    var out=[], lines=String(text==null?'':text).split('\n');
+    for(var li=0; li<lines.length; li++){
+      var line=lines[li], cur='';
+      for(var i=0;i<line.length;i++){
+        var t=cur+line[i];
+        if(ctx.measureText(t).width>maxW && cur!==''){ out.push(cur); cur=line[i]; }
+        else cur=t;
+      }
+      out.push(cur);
+    }
+    return out;
+  }
+  function addTitle(t){ ops.push({type:'title',t:t,y:y}); y+=40; }
+  function addLabel(t){
+    var ls=wrap(t,fLabel,cw);
+    ls.forEach(function(l){ ops.push({type:'label',t:l,y:y}); y+=24; });
+  }
+  function addText(t){
+    var ls=wrap(t,fBody,cw);
+    ls.forEach(function(l){ ops.push({type:'body',t:l,y:y}); y+=24; });
+    y+=6;
+  }
+  function addChips(t){ ops.push({type:'body',t:t,y:y}); y+=24; y+=6; }
+  function addRule(){ ops.push({type:'rule',y:y}); y+=14; }
+  function gap(px){ y+=px; }
+
+  addTitle('社会科 ふり返り心パレット');
+  ops.push({type:'small',t:'学習日：'+(rec.date||'')+'　／　児童番号：'+(rec.studentNo?rec.studentNo+'番':'—'),y:y}); y+=22;
+  ops.push({type:'small',t:'単元名：'+(rec.unit||'（なし）'),y:y}); y+=22;
+  addRule();
+
+  addLabel('■ 今日の学習で分かったこと');
+  addText(rec.understanding||'（みにゅうりょく）');
+  addRule();
+
+  addLabel('■ 心の動き');
+  addText(recordEmotionText(rec)||'（みせんたく）');
+  addLabel('■ その気もちになった理由');
+  addText(recordReasonText(rec)||'（みにゅうりょく）');
+  addRule();
+
+  addLabel('■ つながり');
+  addText((rec.connections&&rec.connections.length)?rec.connections.join('、'):'（みせんたく）');
+  addText('つながりの説明：'+(rec.connectionDesc||'（なし）'));
+  addRule();
+
+  addLabel('■ 次の疑問');
+  addText(rec.next&&rec.next.none?'ぎもんがまだない':((rec.next&&rec.next.text)||'（なし）'));
+
+  var H=y+PAD;
+
+  // --- 実描画 ---
+  canvas.width=W*scale; canvas.height=H*scale;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  ctx.setTransform(scale,0,0,scale,0,0);
+  ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#eef4ff'; ctx.fillRect(0,0,W,72);
+
+  ops.forEach(function(op){
+    if(op.type==='title'){ ctx.font=fTitle; ctx.fillStyle='#22303c'; ctx.fillText(op.t,PAD,op.y+28); }
+    else if(op.type==='label'){ ctx.font=fLabel; ctx.fillStyle='#243b57'; ctx.fillText(op.t,PAD,op.y+16); }
+    else if(op.type==='body'){ ctx.font=fBody; ctx.fillStyle='#22303c'; ctx.fillText(op.t,PAD,op.y+16); }
+    else if(op.type==='small'){ ctx.font=fSmall; ctx.fillStyle='#5a6b7b'; ctx.fillText(op.t,PAD,op.y+14); }
+    else if(op.type==='rule'){ ctx.strokeStyle='#d3dce8'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(PAD,op.y); ctx.lineTo(W-PAD,op.y); ctx.stroke(); }
+  });
+  ctx.strokeStyle='#c7d3e3'; ctx.lineWidth=2; ctx.strokeRect(1,1,W-2,H-2);
+  return canvas;
+}
+
+function downloadBlob(text, filename, mime){
+  var blob=new Blob([text], {type:(mime||'text/plain')+';charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+}
+
+/* ============================================================
+   教師用画面
+   ============================================================ */
+function openTeacherPin(){
+  openModal(
+    '<h3>🔒 教師用ログイン</h3>'+
+    '<p class="hint">暗証番号を入力してください。</p>'+
+    '<input type="password" id="pinInput" inputmode="numeric" style="font-size:22px;letter-spacing:6px;text-align:center" placeholder="････">'+
+    '<div id="pinErr" class="hint" style="color:#c0392b"></div>'+
+    '<div class="actions">'+
+      '<button class="bigbtn b-ghost b-small" onclick="closeModal()">やめる</button>'+
+      '<button class="bigbtn b-primary b-small" onclick="checkPin()">ログイン</button>'+
+    '</div>'
+  );
+  setTimeout(function(){ var p=el('pinInput'); if(p){ p.focus(); p.onkeydown=function(e){ if(e.key==='Enter') checkPin(); }; } },50);
+}
+function checkPin(){
+  var v=el('pinInput')?el('pinInput').value:'';
+  if(v===TEACHER_PIN){ closeModal(); showScreen('teacher'); initTeacherFilters(); renderTeacher(); }
+  else{ el('pinErr').textContent='暗証番号がちがいます。'; }
+}
+
+function initTeacherFilters(){
+  var recs=loadRecords();
+  fillSelect('fStudent', uniq(recs.map(function(r){return r.studentNo;})).sort(function(a,b){return a-b;}), '児童番号：すべて', function(v){return v+'番';});
+  fillSelect('fDate', uniq(recs.map(function(r){return r.date;})).sort().reverse(), '学習日：すべて');
+  fillSelect('fUnit', uniq(recs.map(function(r){return r.unit;}).filter(Boolean)).sort(), '単元名：すべて');
+  fillSelect('fEmotion', EMOTIONS.map(function(e){return e.label;}), '感情：すべて');
+}
+function fillSelect(id, values, allLabel, fmt){
+  var sel=el(id); var keep=sel.value;
+  sel.innerHTML='<option value="">'+allLabel+'</option>';
+  values.forEach(function(v){
+    if(v==null||v==='') return;
+    var o=document.createElement('option'); o.value=v; o.textContent=fmt?fmt(v):v; sel.appendChild(o);
+  });
+  sel.value=keep;
+}
+function uniq(a){ var s=[]; a.forEach(function(x){ if(x!=null && s.indexOf(x)<0) s.push(x); }); return s; }
+
+function getFilteredRecords(){
+  var recs=loadRecords();
+  var fs=el('fStudent').value, fd=el('fDate').value, fu=el('fUnit').value, fe=el('fEmotion').value;
+  var kw=el('fKeyword').value.trim().toLowerCase();
+  var sort=el('fSort').value;
+  var out=recs.filter(function(r){
+    if(fs && String(r.studentNo)!==fs) return false;
+    if(fd && r.date!==fd) return false;
+    if(fu && (r.unit||'')!==fu) return false;
+    if(fe && !(r.emotions||[]).some(function(e){ var em=emoByKey(e.key); return em&&em.label===fe; })) return false;
+    if(kw){
+      var hay=[r.unit,r.understanding,recordReasonText(r),recordEmotionText(r),r.connectionDesc,(r.next&&r.next.text)]
+        .concat((r.connections||[]))
+        .join(' ').toLowerCase();
+      if(hay.indexOf(kw)<0) return false;
+    }
+    return true;
+  });
+  out.sort(function(a,b){
+    var c=(a.savedAt||'').localeCompare(b.savedAt||'');
+    return sort==='asc'?c:-c;
+  });
+  return out;
+}
+
+function renderTeacher(){
+  var recs=getFilteredRecords();
+  el('teacherCount').textContent='ひょうじ中：'+recs.length+' 件（ぜんたい '+loadRecords().length+' 件）';
+
+  var thead=el('teacherTable').querySelector('thead');
+  var tbody=el('teacherTable').querySelector('tbody');
+  thead.innerHTML='<tr>'+
+    ['保存日時','学習日','児童','単元名','分かったこと','えらんだ気もち','気もちの理由','つながり','つながり説明','次の疑問','操作']
+    .map(function(h){return '<th>'+h+'</th>';}).join('')+'</tr>';
+
+  tbody.innerHTML=recs.map(function(r){
+    var emo=esc(recordEmotionText(r)||'—');
+    var reason=recordReasonText(r);
+    var next=(r.next&&r.next.none)?'ぎもんがまだない':((r.next&&r.next.text)||'—');
+    var saved=r.savedAt?r.savedAt.replace('T',' ').slice(0,16):'—';
+    return '<tr>'+
+      '<td>'+esc(saved)+'</td>'+
+      '<td>'+esc(r.date||'')+'</td>'+
+      '<td>'+esc(r.studentNo||'')+'</td>'+
+      '<td>'+esc(r.unit||'')+'</td>'+
+      '<td style="max-width:220px">'+nl2br(r.understanding||'—')+'</td>'+
+      '<td style="max-width:200px">'+emo+'</td>'+
+      '<td style="max-width:220px">'+nl2br(reason||'—')+'</td>'+
+      '<td>'+esc((r.connections||[]).join('、')||'—')+'</td>'+
+      '<td style="max-width:180px">'+nl2br(r.connectionDesc||'—')+'</td>'+
+      '<td style="max-width:180px">'+nl2br(next)+'</td>'+
+      '<td class="no-print" style="white-space:nowrap">'+
+        '<button class="pick b-small" style="min-width:auto;padding:6px 8px" onclick="openDetail(\''+r.id+'\',\'teacher\')">見る</button> '+
+        '<button class="pick b-small" style="min-width:auto;padding:6px 8px;border-color:#e05a2b;color:#e05a2b" onclick="deleteOne(\''+r.id+'\')">削除</button>'+
+      '</td>'+
+    '</tr>';
+  }).join('') || '<tr><td colspan="11">該当する記録がありません。</td></tr>';
+
+  renderStats(recs);
+}
+
+/* ---- 集計（CSS棒グラフ） ---- */
+function renderStats(recs){
+  var box=el('teacherStats');
+  // 児童別件数
+  var byStudent={}; for(var n=1;n<=6;n++) byStudent[n]=0;
+  // 感情別回数
+  var byEmotion={}; EMOTIONS.forEach(function(e){ byEmotion[e.label]=0; });
+  // 日付別
+  var byDate={};
+  // 単元別
+  var byUnit={};
+  // 数値分布（モヤモヤ⇔スッキリ）
+  var byVal={}; SCALE_VALUES.forEach(function(v){ byVal[v]=0; });
+
+  recs.forEach(function(r){
+    if(r.studentNo) byStudent[r.studentNo]=(byStudent[r.studentNo]||0)+1;
+    if(r.date) byDate[r.date]=(byDate[r.date]||0)+1;
+    var u=r.unit||'（単元名なし）'; byUnit[u]=(byUnit[u]||0)+1;
+    (r.emotions||[]).forEach(function(e){
+      var em=emoByKey(e.key); if(em) byEmotion[em.label]=(byEmotion[em.label]||0)+1;
+    });
+    (r.scale||[]).forEach(function(v){
+      if(byVal.hasOwnProperty(v)) byVal[v]++;
+    });
+  });
+
+  function barBlock(title, pairs){
+    var max=1; pairs.forEach(function(p){ if(p[1]>max) max=p[1]; });
+    var rows=pairs.map(function(p){
+      var w=Math.round(p[1]/max*100);
+      return '<div class="bar-row"><div class="bar-label">'+esc(p[0])+'</div>'+
+        '<div class="bar-track"><div class="bar-fill" style="width:'+w+'%"></div></div>'+
+        '<div class="bar-num">'+p[1]+'</div></div>';
+    }).join('');
+    return '<div class="stat"><h4>'+esc(title)+'</h4>'+(rows||'<p class="hint">データなし</p>')+'</div>';
+  }
+
+  var studentPairs=[]; for(var s=1;s<=6;s++) studentPairs.push([s+'番', byStudent[s]||0]);
+  var emoPairs=EMOTIONS.map(function(e){ return [e.emoji+e.label, byEmotion[e.label]||0]; });
+  var datePairs=Object.keys(byDate).sort().map(function(d){ return [d, byDate[d]]; });
+  var unitPairs=Object.keys(byUnit).sort().map(function(u){ return [u, byUnit[u]]; });
+  var valPairs=SCALE_VALUES.map(function(v){ return [valLabel(v), byVal[v]||0]; });
+
+  box.innerHTML=
+    '<h3 style="margin-top:18px">📊 かんたん集計（ひょうじ中の記録）</h3>'+
+    barBlock('児童別の記録件数', studentPairs)+
+    barBlock('感情ごとの選択回数', emoPairs)+
+    barBlock('日付ごとの記録件数', datePairs)+
+    barBlock('単元ごとの記録件数', unitPairs)+
+    barBlock('モヤモヤ⇔スッキリ（−4〜＋4）の分布', valPairs);
+}
+
+/* ---- 削除 ---- */
+function deleteOne(id){
+  if(!confirm('この記録を削除します。よろしいですか？')) return;
+  var arr=loadRecords().filter(function(r){ return r.id!==id; });
+  saveRecords(arr);
+  initTeacherFilters(); renderTeacher();
+  toast('削除しました');
+}
+function deleteAllStep1(){
+  openModal(
+    '<h3>⚠ 全記録削除（1/2）</h3>'+
+    '<p>保存されているすべての記録を削除します。この操作は取り消せません。</p>'+
+    '<div class="actions">'+
+      '<button class="bigbtn b-ghost b-small" onclick="closeModal()">やめる</button>'+
+      '<button class="bigbtn b-warn b-small" onclick="deleteAllStep2()">次へ（確認）</button>'+
+    '</div>'
+  );
+}
+function deleteAllStep2(){
+  openModal(
+    '<h3>⚠ 全記録削除（2/2）</h3>'+
+    '<p>本当にすべて削除しますか？もう元に戻せません。</p>'+
+    '<p class="hint">よければ下の欄に <b>削除</b> と入力してください。</p>'+
+    '<input type="text" id="delConfirm" placeholder="削除">'+
+    '<div class="actions">'+
+      '<button class="bigbtn b-ghost b-small" onclick="closeModal()">やめる</button>'+
+      '<button class="bigbtn b-warn b-small" onclick="deleteAllFinal()">すべて削除する</button>'+
+    '</div>'
+  );
+}
+function deleteAllFinal(){
+  var v=el('delConfirm')?el('delConfirm').value.trim():'';
+  if(v!=='削除'){ toast('「削除」と入力してください'); return; }
+  saveRecords([]);
+  closeModal();
+  initTeacherFilters(); renderTeacher();
+  toast('全記録を削除しました');
+}
+
+/* ---- CSV出力（UTF-8 BOM・改行/カンマ対応） ---- */
+function csvCell(v){
+  var s=String(v==null?'':v);
+  s=s.replace(/"/g,'""');
+  return '"'+s+'"';
+}
+function exportCSV(){
+  var recs=getFilteredRecords();
+  var head=['保存日時','学習日','児童番号','単元名','分かったこと',
+            'えらんだ気もち','モヤモヤ・スッキリ','気もちの理由',
+            'つながりの種類','つながりの説明','次の疑問'];
+
+  var rows=[head.map(csvCell).join(',')];
+  recs.forEach(function(r){
+    var emoTxt=(r.emotions||[]).map(function(e){ return e.label||e.levelLabel||e.key; }).join('・');
+    var scaleTxt=(r.scale||[]).map(function(v){ return valLabel(v); }).join('・');
+    var row=[
+      (r.savedAt||'').replace('T',' ').slice(0,19),
+      r.date||'', r.studentNo||'', r.unit||'', r.understanding||'',
+      emoTxt, scaleTxt, recordReasonText(r)||'',
+      (r.connections||[]).join('、'), r.connectionDesc||'',
+      (r.next&&r.next.none)?'ぎもんがまだない':((r.next&&r.next.text)||'')
+    ];
+    rows.push(row.map(csvCell).join(','));
+  });
+  var csv='﻿'+rows.join('\r\n'); // BOM付き
+  downloadBlob(csv, 'heart_palette_'+todayStr()+'.csv','text/csv');
+  toast('CSVを出力しました');
+}
+
+/* ---- JSONバックアップ / 読み込み ---- */
+function exportAllJSON(){
+  var data={ app:'social-studies-heart-palette', version:1, exportedAt:new Date().toISOString(), records:loadRecords() };
+  downloadBlob(JSON.stringify(data,null,2), 'heart_palette_backup_'+todayStr()+'.json','application/json');
+  toast('JSONバックアップを保存しました');
+}
+function importJSON(ev){
+  var file=ev.target.files[0];
+  ev.target.value=''; // 同じファイルを再選択できるように
+  if(!file) return;
+  var reader=new FileReader();
+  reader.onload=function(){
+    try{
+      var data=JSON.parse(reader.result);
+      var records=Array.isArray(data)?data:(data && Array.isArray(data.records)?data.records:null);
+      if(!records) throw new Error('records が見つかりません');
+      // かんたんな形式チェック
+      var ok=records.every(function(r){ return r && typeof r==='object' && ('understanding' in r || 'emotions' in r || 'studentNo' in r); });
+      if(!ok) throw new Error('データ形式が正しくありません');
+      // id補完
+      records.forEach(function(r,i){ if(!r.id) r.id='imp'+Date.now()+'_'+i; });
+
+      openModal(
+        '<h3>📥 JSON読み込み</h3>'+
+        '<p>読み込む記録：<b>'+records.length+'件</b><br>現在の記録：<b>'+loadRecords().length+'件</b></p>'+
+        '<p class="hint">どうしますか？</p>'+
+        '<div class="actions">'+
+          '<button class="bigbtn b-ghost b-small" onclick="closeModal()">やめる</button>'+
+          '<button class="bigbtn b-primary b-small" onclick="applyImport(true)">追加する</button>'+
+          '<button class="bigbtn b-warn b-small" onclick="applyImport(false)">置きかえる</button>'+
+        '</div>'
+      );
+      window.__pendingImport=records;
+    }catch(e){
+      openModal('<h3>⚠ 読み込みエラー</h3><p>このファイルは正しいバックアップではありません。<br><small>'+esc(e.message)+'</small></p>'+
+        '<div class="actions"><button class="bigbtn b-ghost b-small" onclick="closeModal()">閉じる</button></div>');
+    }
+  };
+  reader.onerror=function(){ showErrorBanner('ファイルの読み込みに失敗しました。'); };
+  reader.readAsText(file);
+}
+function applyImport(add){
+  var incoming=window.__pendingImport||[];
+  var base=add?loadRecords():[];
+  // idの重複をさける
+  var seen={}; base.forEach(function(r){ seen[r.id]=true; });
+  incoming.forEach(function(r){
+    if(seen[r.id]){ r.id=r.id+'_'+Math.floor(Math.random()*10000); }
+    seen[r.id]=true; base.push(r);
+  });
+  saveRecords(base);
+  window.__pendingImport=null;
+  closeModal();
+  initTeacherFilters(); renderTeacher();
+  toast(add?'追加しました':'置きかえました');
+}
+
+/* ============================================================
+   モーダル
+   ============================================================ */
+function openModal(html){ el('modalBox').innerHTML=html; el('overlay').classList.add('show'); }
+function closeModal(){ el('overlay').classList.remove('show'); }
+el('overlay').addEventListener('click', function(e){ if(e.target===el('overlay')) closeModal(); });
+
+/* ============================================================
+   起動
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', function(){
+  try{ init(); }catch(e){ showErrorBanner('初期化でエラーが発生しました。'); }
+});
+</script>
+</body>
+</html>

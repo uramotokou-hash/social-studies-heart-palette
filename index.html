@@ -156,6 +156,11 @@
   .seg button.on{background:var(--accent);color:#fff;border-color:var(--accent);}
 
   /* 教師用 */
+  .send-box{
+    border:2px solid #cfe0c8;background:#f4faf1;border-radius:14px;
+    padding:14px;margin:12px 0;
+  }
+  .send-box input{width:100%;font-size:14px;padding:10px;border:2px solid var(--line);border-radius:10px;background:#fff;}
   .teacher-entry{text-align:center;margin:26px 0 0;}
   .teacher-entry button{
     background:#fff;border:2px solid var(--line);color:#5a6b7b;font-size:14px;font-weight:700;
@@ -338,6 +343,18 @@
         <button class="bigbtn b-ghost b-small no-print" onclick="showScreen('input')">← 入力画面へ</button>
       </div>
 
+      <div class="send-box no-print">
+        <h4 style="margin:0 0 6px">📤 きろくの自動送信（Googleスプレッドシート）</h4>
+        <p class="hint" style="margin:0 0 8px">児童が保存すると、先生のスプレッドシートに自動で届きます。せってい方法は <b>docs/先生用セットアップ.md</b> を見てください。</p>
+        <input type="text" id="sendUrlInput" placeholder="https://script.google.com/macros/s/…/exec">
+        <div class="actions" style="margin-top:10px">
+          <button class="bigbtn b-primary b-small" onclick="saveSendUrl()">保存</button>
+          <button class="bigbtn b-ghost b-small" onclick="testSendUrl()">接続テスト</button>
+          <button class="bigbtn b-ghost b-small" onclick="sendPending(true)">未送信をいますぐ送る</button>
+        </div>
+        <p class="hint" id="sendStatus" style="margin:8px 0 0"></p>
+      </div>
+
       <div class="filters no-print">
         <select id="fStudent" onchange="renderTeacher()"><option value="">児童番号：すべて</option></select>
         <select id="fDate" onchange="renderTeacher()"><option value="">学習日：すべて</option></select>
@@ -404,6 +421,7 @@ function showErrorBanner(msg){
    ============================================================ */
 var STORE_KEY='shp_records';
 var DRAFT_KEY='shp_draft';
+var SETTINGS_KEY='shp_settings';
 var TEACHER_PIN='2468';
 
 /* 心パレット：8つの感情（時計回り・真上から） × 3段階のつよさ（内→外） */
@@ -597,9 +615,21 @@ function init(){
   buildScale();
   buildConnButtons();
   buildHistStudentButtons();
+  // URLの ?gas=… で送信先を自動せってい（先生が配るリンク用）
+  try{
+    var m=location.search.match(/[?&]gas=([^&]+)/);
+    if(m){
+      var s=loadSettings();
+      s.sendUrl=decodeURIComponent(m[1]);
+      saveSettings(s);
+    }
+  }catch(e){}
   restoreDraft();
   renderAll();
   showScreen('home');
+  // 未送信ぶんがあれば自動で送る（オンライン復帰時も）
+  setTimeout(function(){ sendPending(false); }, 800);
+  window.addEventListener('online', function(){ sendPending(false); });
 }
 
 function buildStudentButtons(){
@@ -962,6 +992,8 @@ function doSave(){
     // 保存したら、その子の「わたしのきろく」を自動で開く
     if(savedStudent) histStudent=Number(savedStudent);
     showScreen('history');
+    // 先生のスプレッドシートへ自動送信（失敗しても端末には残る）
+    setTimeout(function(){ sendPending(false); }, 400);
   }catch(e){
     showErrorBanner('保存に失敗しました。');
   }finally{
@@ -1252,7 +1284,11 @@ function openTeacherPin(){
 }
 function checkPin(){
   var v=el('pinInput')?el('pinInput').value:'';
-  if(v===TEACHER_PIN){ closeModal(); showScreen('teacher'); initTeacherFilters(); renderTeacher(); }
+  if(v===TEACHER_PIN){
+    closeModal(); showScreen('teacher');
+    el('sendUrlInput').value=getSendUrl();
+    initTeacherFilters(); renderTeacher();
+  }
   else{ el('pinErr').textContent='暗証番号がちがいます。'; }
 }
 
@@ -1330,6 +1366,7 @@ function renderTeacher(){
   }).join('') || '<tr><td colspan="9">該当する記録がありません。</td></tr>';
 
   renderStats(recs);
+  updateSendStatus();
 }
 
 /* ---- 集計（CSS棒グラフ） ---- */
@@ -1506,6 +1543,91 @@ function applyImport(add){
   closeModal();
   initTeacherFilters(); renderTeacher();
   toast(add?'追加しました':'置きかえました');
+}
+
+/* ============================================================
+   Googleスプレッドシートへの自動送信（GAS Web App）
+   ============================================================ */
+function loadSettings(){
+  try{
+    var s=JSON.parse(localStorage.getItem(SETTINGS_KEY)||'{}');
+    return (s&&typeof s==='object')?s:{};
+  }catch(e){ return {}; }
+}
+function saveSettings(s){
+  try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); }catch(e){}
+}
+function getSendUrl(){ return (loadSettings().sendUrl||'').trim(); }
+
+/* 送信用にレコードを1行ぶんの平らなデータへ */
+function flattenForSend(r){
+  return {
+    id:r.id, savedAt:r.savedAt||'', date:r.date||'', studentNo:r.studentNo||'',
+    unit:r.unit||'', understanding:r.understanding||'',
+    emotionText:(r.emotions||[]).map(function(e){ return e.label||e.levelLabel||e.key; }).join('・'),
+    scaleText:(r.scale||[]).map(valLabel).join('・'),
+    reason:recordReasonText(r)||'',
+    connections:(r.connections||[]).join('、')
+  };
+}
+
+var sendingNow=false;
+/* 未送信のきろくをまとめて送る（保存時・起動時・オンライン復帰時・手動） */
+function sendPending(manual){
+  var url=getSendUrl();
+  if(!url){ if(manual) toast('送信先URLがせっていされていません'); updateSendStatus(); return; }
+  var pend=loadRecords().filter(function(r){ return !r.sentAt; });
+  if(pend.length===0){ if(manual) toast('未送信のきろくはありません'); updateSendStatus(); return; }
+  if(sendingNow) return;
+  sendingNow=true;
+  updateSendStatus('送信中…');
+  // ヘッダーを付けないPOST（text/plain）にすると、GAS側でそのまま受け取れる
+  fetch(url,{method:'POST',body:JSON.stringify({app:'heart-palette',records:pend.map(flattenForSend)})})
+    .then(function(res){ return res.json(); })
+    .then(function(j){
+      if(j && j.ok){
+        var now=new Date().toISOString();
+        var ids={}; pend.forEach(function(r){ ids[r.id]=true; });
+        var arr=loadRecords();
+        arr.forEach(function(r){ if(ids[r.id]) r.sentAt=now; });
+        saveRecords(arr);
+        toast('✈ 先生に '+pend.length+' 件おくりました');
+      }else{
+        if(manual) toast('送信に失敗しました（あとで自動でためします）');
+      }
+    })
+    .catch(function(){
+      if(manual) toast('送信できませんでした（あとで自動でためします）');
+    })
+    .then(function(){ sendingNow=false; updateSendStatus(); });
+}
+function updateSendStatus(msg){
+  var p=el('sendStatus'); if(!p) return;
+  var url=getSendUrl();
+  var pend=loadRecords().filter(function(r){ return !r.sentAt; }).length;
+  var base=url?'送信先：せってい済み ✅':'送信先：未せってい（きろくは端末内にだけ保存されます）';
+  p.textContent=(msg?msg+' ／ ':'')+base+' ／ 未送信 '+pend+' 件';
+}
+function saveSendUrl(){
+  var v=el('sendUrlInput').value.trim();
+  if(v && v.indexOf('https://script.google.com/')!==0){
+    if(!confirm('Google Apps Script のURL（https://script.google.com/…）ではないようです。このまま保存しますか？')) return;
+  }
+  var s=loadSettings(); s.sendUrl=v; saveSettings(s);
+  toast(v?'送信先を保存しました':'送信先を削除しました');
+  updateSendStatus();
+}
+function testSendUrl(){
+  var url=el('sendUrlInput').value.trim()||getSendUrl();
+  if(!url){ toast('URLを入力してください'); return; }
+  updateSendStatus('接続テスト中…');
+  fetch(url)
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      if(j && j.ping==='heart-palette'){ toast('✅ 接続OK！'); updateSendStatus('接続OK'); }
+      else{ toast('応答はありましたが、内容がちがいます'); updateSendStatus(); }
+    })
+    .catch(function(){ toast('接続できませんでした'); updateSendStatus(); });
 }
 
 /* ============================================================

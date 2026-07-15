@@ -137,9 +137,18 @@
   .b-warn{background:var(--warn);color:#fff;}
   .b-small{font-size:15px;padding:10px 14px;min-height:44px;border-radius:12px;flex:0 0 auto;min-width:auto;}
 
+  /* 虹のライン（心パレットの色） */
+  .rainbow{height:6px;border-radius:999px;max-width:420px;margin:4px auto 12px;
+    background:linear-gradient(90deg,#f2739c,#e8433f,#f5a623,#3fd63c,#22d6d3,#3a6df0,#a93df0,#f04fb0);}
+
   /* 履歴 */
-  .hist-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:10px 0;cursor:pointer;box-shadow:var(--shadow);}
+  .hist-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:10px 0;cursor:pointer;box-shadow:var(--shadow);position:relative;}
   .hist-card:hover{border-color:var(--accent);}
+  .hist-del{
+    position:absolute;top:10px;right:10px;font-size:13px;font-weight:700;
+    padding:6px 12px;border-radius:10px;border:2px solid #eec4b2;background:#fff;color:#c0512b;cursor:pointer;
+  }
+  .hist-del:hover{border-color:#e05a2b;}
   .hist-meta{font-size:14px;color:#5a6b7b;}
   .hist-title{font-weight:800;font-size:17px;margin:2px 0;}
   .seg{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0;}
@@ -148,7 +157,11 @@
 
   /* 教師用 */
   .teacher-entry{text-align:center;margin:26px 0 0;}
-  .teacher-entry button{background:none;border:none;color:#9aa8b6;font-size:14px;text-decoration:underline;cursor:pointer;padding:8px;}
+  .teacher-entry button{
+    background:#fff;border:2px solid var(--line);color:#5a6b7b;font-size:14px;font-weight:700;
+    border-radius:999px;padding:9px 20px;cursor:pointer;min-height:42px;
+  }
+  .teacher-entry button:hover{border-color:var(--accent);color:var(--accent);}
   table{border-collapse:collapse;width:100%;font-size:14px;}
   th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top;}
   th{background:#eef3fb;position:sticky;top:0;}
@@ -195,8 +208,9 @@
 <div id="errBanner" class="err-banner hidden no-print"></div>
 
 <div class="wrap">
-  <h1>社会科 ふり返り心パレット</h1>
+  <h1>🎨 社会科 ふり返り心パレット</h1>
   <p class="subtitle no-print">分かったこと・心の動き・つながりをきろくしよう</p>
+  <div class="rainbow no-print"></div>
 
   <div class="topnav no-print">
     <button class="navbtn active" id="nav-home" onclick="showScreen('home')">🏠 Home</button>
@@ -207,22 +221,16 @@
   <!-- ================= Home画面 ================= -->
   <section id="screen-home">
     <div class="card" style="text-align:center">
-      <p style="font-size:21px;font-weight:800;margin:6px 0 16px">きょうの学習を、ふり返ろう</p>
+      <div style="font-size:44px;line-height:1.35;margin:6px 0 2px">📖 ➜ 🎨 ➜ 💬</div>
+      <p style="font-size:15px;color:#5a6b7b;margin:0 0 12px">分かったこと → 気もち → りゆう のじゅんに書くよ</p>
+      <p style="font-size:22px;font-weight:800;margin:6px 0 16px">きょうの学習を、ふり返ろう！✨</p>
       <div class="actions" style="flex-direction:column">
         <button class="bigbtn b-primary" onclick="showScreen('input')">✏️ ふり返りを書く</button>
         <button class="bigbtn b-ghost" onclick="showScreen('history')">📚 わたしのきろくを見る</button>
       </div>
     </div>
-    <div class="card">
-      <div class="qtitle" style="font-size:17px;margin-bottom:8px">🗑 自分のきろくをけす</div>
-      <p class="hint">自分の児童番号をえらんでから、下のボタンをおしてください。</p>
-      <div class="btnrow" id="homeDelBtns"></div>
-      <div class="actions" style="margin-top:14px">
-        <button class="bigbtn b-warn b-small" onclick="deleteMyRecords()">えらんだ番号のきろくを ぜんぶけす</button>
-      </div>
-    </div>
     <div class="teacher-entry no-print">
-      <button onclick="openTeacherPin()">教師用</button>
+      <button onclick="openTeacherPin()">🍎 先生用ログイン</button>
     </div>
   </section>
 
@@ -231,7 +239,7 @@
 
     <!-- 学習日・児童番号・単元 -->
     <div class="card">
-      <div class="qhead"><div class="qnum">0</div><div class="qtitle">きょうの学習について</div></div>
+      <div class="qhead"><div class="qnum">0</div><div class="qtitle">🗓 きょうの学習について</div></div>
       <label class="fld" for="dateInput">学習日（じどうてきに入るよ。かえられます）</label>
       <input type="date" id="dateInput" onchange="onField()">
       <div style="height:12px"></div>
@@ -244,14 +252,14 @@
 
     <!-- 1 分かったこと -->
     <div class="card">
-      <div class="qhead"><div class="qnum">1</div><div class="qtitle">今日の学習で、どんなことが分かりましたか？</div></div>
+      <div class="qhead"><div class="qnum">1</div><div class="qtitle">📖 今日の学習で、どんなことが分かりましたか？</div></div>
       <textarea id="understanding" placeholder="分かったことを書こう" oninput="autoGrow(this);onField()"></textarea>
       <div class="example">れい：漁師さんは魚をとるだけでなく、鮮度を保つ工夫や運ぶ人との協力によって、新鮮な魚を消費者に届けていることが分かった。</div>
     </div>
 
     <!-- 2 感情選択 -->
     <div class="card">
-      <div class="qhead"><div class="qnum">2</div><div class="qtitle">分かったことに対して、どんな心の動きがありましたか？</div></div>
+      <div class="qhead"><div class="qnum">2</div><div class="qtitle">🎨 分かったことに対して、どんな心の動きがありましたか？</div></div>
       <p class="hint">心パレットの、あてはまるところをタップしよう（同じ色のなかでも、いくつでもえらべます）。下のモヤモヤ⇔スッキリのメモリも、気もちとしてえらべます。</p>
       <div class="palette-wrap">
         <svg id="paletteSvg" viewBox="0 0 640 640" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="心パレット"></svg>
@@ -263,7 +271,7 @@
 
     <!-- 3 気もちの言語化（①と②をつなげる） -->
     <div class="card">
-      <div class="qhead"><div class="qnum">3</div><div class="qtitle">①と②をつなげて、言葉にしよう</div></div>
+      <div class="qhead"><div class="qnum">3</div><div class="qtitle">💬 ①と②をつなげて、言葉にしよう</div></div>
       <div id="reasonChips" class="hint"></div>
       <label class="fld" for="emotionReason">①のことが分かって、②の気もちになった理由は？</label>
       <textarea id="emotionReason" placeholder="どうしてかというと、…" oninput="autoGrow(this);onField()"></textarea>
@@ -272,7 +280,7 @@
 
     <!-- 5 つながり -->
     <div class="card">
-      <div class="qhead"><div class="qnum">4</div><div class="qtitle">今日分かったことは、何とつながりましたか？</div></div>
+      <div class="qhead"><div class="qnum">4</div><div class="qtitle">🔗 今日分かったことは、何とつながりましたか？</div></div>
       <p class="hint">あてはまるものをえらぼう（いくつでも）。</p>
       <div class="btnrow" id="connBtns"></div>
     </div>
@@ -556,50 +564,27 @@ function showScreen(name){
   if(name==='history') renderHistory();
 }
 
-/* ---- Home画面：自分のきろく削除 ---- */
-var homeDelStudent=null;
-function buildHomeDelButtons(){
-  var box=el('homeDelBtns'); box.innerHTML='';
-  for(var n=1;n<=6;n++){
-    (function(n){
-      var b=document.createElement('button');
-      b.type='button'; b.className='pick stu'; b.dataset.no=n;
-      b.onclick=function(){ homeDelStudent=(homeDelStudent===n?null:n); renderHomeDelButtons(); };
-      box.appendChild(b);
-    })(n);
-  }
-  renderHomeDelButtons();
-}
-function renderHomeDelButtons(){
-  var btns=el('homeDelBtns').children;
-  for(var i=0;i<btns.length;i++){
-    var on=(homeDelStudent===Number(btns[i].dataset.no));
-    btns[i].classList.toggle('on', on);
-    btns[i].innerHTML=(on?'<span class="chk">✔</span>':'')+btns[i].dataset.no+'番';
-  }
-}
-function deleteMyRecords(){
-  if(!homeDelStudent){ toast('まず自分の児童番号をえらんでね'); return; }
-  var n=homeDelStudent;
-  var cnt=loadRecords().filter(function(r){ return Number(r.studentNo)===n; }).length;
-  if(cnt===0){ toast(n+'番のきろくはありません'); return; }
+/* ---- わたしのきろく：1件ずつ選んで削除 ---- */
+function deleteRecordChild(id){
+  var rec=loadRecords().filter(function(r){ return r.id===id; })[0];
+  if(!rec) return;
+  var summary=(rec.understanding||'').slice(0,30);
+  if((rec.understanding||'').length>30) summary+='…';
   openModal(
-    '<h3>🗑 きろくをけす</h3>'+
-    '<p><b>'+n+'番</b> のきろく <b>'+cnt+'件</b> をぜんぶけします。<br>けしたら、もとにもどせません。よろしいですか？</p>'+
+    '<h3>🗑 このきろくをけす</h3>'+
+    '<p>📅 '+esc(rec.date||'')+'<br>「'+esc(summary||'（本文なし）')+'」</p>'+
+    '<p class="hint">けしたら、もとにもどせません。よろしいですか？</p>'+
     '<div class="actions">'+
       '<button class="bigbtn b-ghost b-small" onclick="closeModal()">やめる</button>'+
-      '<button class="bigbtn b-warn b-small" onclick="doDeleteMyRecords()">けす</button>'+
+      '<button class="bigbtn b-warn b-small" onclick="doDeleteRecordChild(\''+id+'\')">けす</button>'+
     '</div>'
   );
 }
-function doDeleteMyRecords(){
-  var n=homeDelStudent;
-  var arr=loadRecords().filter(function(r){ return Number(r.studentNo)!==n; });
-  saveRecords(arr);
-  homeDelStudent=null;
-  renderHomeDelButtons();
+function doDeleteRecordChild(id){
+  saveRecords(loadRecords().filter(function(r){ return r.id!==id; }));
   closeModal();
-  toast(n+'番のきろくをけしました');
+  toast('きろくをけしました');
+  renderHistory();
 }
 
 /* ============================================================
@@ -612,7 +597,6 @@ function init(){
   buildScale();
   buildConnButtons();
   buildHistStudentButtons();
-  buildHomeDelButtons();
   restoreDraft();
   renderAll();
   showScreen('home');
@@ -974,7 +958,7 @@ function doSave(){
     var savedStudent=rec.studentNo;
     state=blankState();
     renderAll();
-    toast('保存しました！');
+    toast('🎉 ほぞんしました！よくがんばったね⭐');
     // 保存したら、その子の「わたしのきろく」を自動で開く
     if(savedStudent) histStudent=Number(savedStudent);
     showScreen('history');
@@ -1017,14 +1001,14 @@ function renderHistory(){
   }
   var list=el('histList');
   var viz=el('histViz');
-  if(!histStudent){ viz.innerHTML=''; list.innerHTML='<p class="hint">児童番号をえらんでください。</p>'; return; }
+  if(!histStudent){ viz.innerHTML=''; list.innerHTML='<p class="hint">👆 じぶんの児童番号をえらんでね。</p>'; return; }
 
   var arr=loadRecords().filter(function(r){ return Number(r.studentNo)===histStudent; });
   arr.sort(function(a,b){ return (b.savedAt||'').localeCompare(a.savedAt||''); }); // 新しい順
   if(histMode==='5') arr=arr.slice(0,5);
   else if(histMode==='1') arr=arr.slice(0,1);
 
-  if(arr.length===0){ viz.innerHTML=''; list.innerHTML='<p class="hint">まだきろくがありません。</p>'; return; }
+  if(arr.length===0){ viz.innerHTML=''; list.innerHTML='<p class="hint">まだきろくがありません 🌱 さいしょのふり返りを書いてみよう！</p>'; return; }
 
   renderHistViz(arr);
 
@@ -1035,6 +1019,7 @@ function renderHistory(){
     if(understanding.length>60) understanding=understanding.slice(0,60)+'…';
     if(reason.length>60) reason=reason.slice(0,60)+'…';
     return '<div class="hist-card" onclick="openDetail(\''+r.id+'\',\'history\')">'+
+      '<button type="button" class="hist-del no-print" onclick="event.stopPropagation();deleteRecordChild(\''+r.id+'\')">🗑 けす</button>'+
       '<div class="hist-meta">📅 '+esc(r.date||'')+'　／　単元：'+esc(r.unit||'（なし）')+'</div>'+
       '<div class="hist-title">'+esc(understanding)+'</div>'+
       '<div class="hist-meta">心の動き：'+esc(emo)+'</div>'+
@@ -1112,7 +1097,9 @@ function renderHistViz(arr){
       '<div class="bar-num">'+counts[i]+'字</div></div>';
   }).join('');
 
+  var total=loadRecords().filter(function(r){ return Number(r.studentNo)===histStudent; }).length;
   box.innerHTML=
+    '<div style="text-align:center;font-weight:800;font-size:17px;margin:10px 0 4px">🎉 これまでに <span style="font-size:24px;color:var(--accent)">'+total+'</span> 回 ふり返ったよ！✨</div>'+
     '<div class="qtitle" style="font-size:17px;margin:10px 0 6px">🎨 わたしの心パレット（えらんだ回数）</div>'+
     '<svg class="histviz-svg" viewBox="0 0 640 640" xmlns="http://www.w3.org/2000/svg">'+svg+'</svg>'+
     '<div class="scalebar mini">'+scaleHtml+'</div>'+
